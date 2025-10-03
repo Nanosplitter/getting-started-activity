@@ -1,0 +1,70 @@
+/**
+ * API communication with the server
+ */
+
+import { API_ENDPOINTS } from "../config.js";
+
+/**
+ * Fetch connections game data for a specific date
+ * @param {string} date - Date in YYYY-MM-DD format
+ * @returns {Promise<Object>} - Game data
+ */
+export async function fetchGameData(date) {
+  const response = await fetch(API_ENDPOINTS.connections(date));
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch game data for ${date}`);
+  }
+
+  const data = await response.json();
+
+  // Transform NYT format to our internal format
+  if (data.categories) {
+    data.categories = data.categories.map((cat, index) => ({
+      group: cat.title,
+      members: cat.cards.map((card) => card.content),
+      difficulty: index // 0=Yellow, 1=Green, 2=Blue, 3=Purple
+    }));
+  }
+
+  return data;
+}
+
+/**
+ * Fetch game state for a guild and date
+ * @param {string} guildId - Guild ID
+ * @param {string} date - Date in YYYY-MM-DD format
+ * @returns {Promise<Object>} - Server game state
+ */
+export async function fetchGameState(guildId, date) {
+  const response = await fetch(API_ENDPOINTS.gameState(guildId, date));
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch game state");
+  }
+
+  return response.json();
+}
+
+/**
+ * Save game result to the server
+ * @param {string} guildId - Guild ID
+ * @param {string} date - Date in YYYY-MM-DD format
+ * @param {Object} result - Game result data
+ * @returns {Promise<Object>} - Server response
+ */
+export async function saveGameResult(guildId, date, result) {
+  const response = await fetch(API_ENDPOINTS.completeGame(guildId, date), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(result)
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to save game result");
+  }
+
+  return response.json();
+}

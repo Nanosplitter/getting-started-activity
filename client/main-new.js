@@ -1,9 +1,9 @@
 /**
  * Connections Game - Main Entry Point
- * 
+ *
  * This is the main entry point for the Connections game.
  * The code is organized into modules for better maintainability:
- * 
+ *
  * - config.js: Configuration and constants
  * - modules/discord.js: Discord SDK setup and authentication
  * - modules/game-state.js: Game state management
@@ -69,7 +69,7 @@ async function initializeGame() {
     if (hasUserPlayed(serverGameState, currentUser.id)) {
       updateGameState({
         hasPlayed: true,
-        isGameOver: true,
+        isGameOver: true
       });
     }
 
