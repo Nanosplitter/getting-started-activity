@@ -1,5 +1,11 @@
 import { DiscordSDK } from "@discord/embedded-app-sdk";
+import { MockDiscordSDK, mockTokenEndpoint } from "./mock-discord.js";
 import "./style.css";
+
+// Check if we're in local development mode (not in Discord iframe)
+const isLocalMode = !window.location.ancestorOrigins?.length && window.location.hostname === "localhost";
+
+console.log(`Running in ${isLocalMode ? "LOCAL" : "DISCORD"} mode`);
 
 // Will eventually store the authenticated user's access_token
 let auth;
@@ -15,14 +21,15 @@ let gameState = {
   hasPlayed: false
 };
 
-const discordSdk = new DiscordSDK(import.meta.env.VITE_DISCORD_CLIENT_ID);
+// Use mock SDK in local mode, real SDK in Discord
+const discordSdk = isLocalMode
+  ? new MockDiscordSDK(import.meta.env.VITE_DISCORD_CLIENT_ID || "mock-client-id")
+  : new DiscordSDK(import.meta.env.VITE_DISCORD_CLIENT_ID);
 
 setupDiscordSdk().then(() => {
   console.log("Discord SDK is authenticated");
   initializeGame();
 });
-
-// initializeGame();
 
 async function setupDiscordSdk() {
   await discordSdk.ready();
@@ -30,7 +37,7 @@ async function setupDiscordSdk() {
 
   // Authorize with Discord Client
   const { code } = await discordSdk.commands.authorize({
-    client_id: import.meta.env.VITE_DISCORD_CLIENT_ID,
+    client_id: import.meta.env.VITE_DISCORD_CLIENT_ID || "mock-client-id",
     response_type: "code",
     state: "",
     prompt: "none",
@@ -38,16 +45,25 @@ async function setupDiscordSdk() {
   });
 
   // Retrieve an access_token from your activity's server
-  const response = await fetch("/api/token", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      code
-    })
-  });
-  const { access_token } = await response.json();
+  let tokenData;
+  if (isLocalMode) {
+    // Use mock token endpoint in local mode
+    tokenData = await mockTokenEndpoint(code);
+  } else {
+    // Use real server endpoint in Discord mode
+    const response = await fetch("/api/token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        code
+      })
+    });
+    tokenData = await response.json();
+  }
+
+  const { access_token } = tokenData;
 
   // Authenticate with Discord client (using the access_token)
   auth = await discordSdk.commands.authenticate({
@@ -138,6 +154,15 @@ function renderGame(serverGameState) {
     <h1>Connections</h1>
   `;
 
+  // Show local mode indicator
+  if (isLocalMode) {
+    html += `
+      <div style="background: #2c5aa0; color: white; padding: 0.5rem; border-radius: 4px; margin-bottom: 1rem; font-size: 0.9rem; text-align: center;">
+        🔧 Local Development Mode | User: ${currentUser?.username || "Unknown"} | Guild: ${discordSdk.guildId}
+      </div>
+    `;
+  }
+
   // Show completed players
   const completedPlayers = Object.entries(serverGameState.players || {});
   if (completedPlayers.length > 0) {
@@ -220,12 +245,21 @@ function renderGameBoard() {
   // Word grid - show remaining words
   const remainingWords = getRemainingWords();
 
-  // Shuffle the words for display
-  const shuffledWords = [...remainingWords].sort(() => Math.random() - 0.5);
+  // In local mode, keep words in category order for easier development
+  // In Discord mode, shuffle for normal gameplay
+  let displayWords;
+  if (isLocalMode) {
+    displayWords = remainingWords; // Keep in category order (each row = one category)
+    html += `<div class="dev-hint">
+      💡 Dev Mode: Words are in category order | Each row = one category | Color bars show grouping
+    </div>`;
+  } else {
+    displayWords = [...remainingWords].sort(() => Math.random() - 0.5); // Shuffle for normal play
+  }
 
   html += `
-    <div class="game-grid">
-      ${shuffledWords
+    <div class="game-grid ${isLocalMode ? "dev-mode" : ""}">
+      ${displayWords
         .map(
           (word) => `
         <button class="word-button" data-word="${escapeHtml(word)}">
@@ -275,11 +309,22 @@ function getRemainingWords() {
     return [];
   }
 
-  const allWords = gameData.categories.flatMap((cat) => cat.members);
-  const remaining = allWords.filter((word) => !solvedWords.has(word));
+  // Get remaining words while preserving category order
+  // This will naturally group words by category (4 words per category)
+  const remaining = [];
+  gameData.categories.forEach((category) => {
+    category.members.forEach((word) => {
+      if (!solvedWords.has(word)) {
+        remaining.push(word);
+      }
+    });
+  });
 
-  console.log("All words:", allWords);
-  console.log("Remaining words:", remaining);
+  console.log(
+    "All categories:",
+    gameData.categories.map((c) => c.group)
+  );
+  console.log("Remaining words (in category order):", remaining);
 
   return remaining;
 }

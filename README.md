@@ -106,10 +106,64 @@ cd client
 npm run dev
 ```
 
-5. Set up Discord Activity:
-   - Go to your Discord Developer Portal
+5. **Choose your development mode:**
+
+   **Option A: Local Development (No Discord Required)**
+
+   - Just open http://localhost:5173/local.html in your browser
+   - The app will use mock Discord data
+   - Perfect for testing game logic without Discord setup
+   - Mock user and guild IDs are automatically generated
+
+   **Option B: Discord Activity**
+
+   - Set up Discord Activity in Developer Portal
    - Configure the Activity URL Mapping to point to your local/hosted URLs
    - Use cloudflared or similar for local testing
+   - Full Discord integration with real user data
+
+## Local Development Mode
+
+The app now supports running locally without Discord! This is perfect for:
+
+- Testing game mechanics quickly
+- Developing new features without Discord setup
+- Running automated tests
+- Demoing the game without Discord
+
+### How Local Mode Works
+
+When you access the app via `localhost` (not in a Discord iframe), it automatically:
+
+- ✅ Uses a mock Discord SDK
+- ✅ Generates fake user data (random username and ID)
+- ✅ Simulates a guild/server environment
+- ✅ Works with all game features
+- ✅ Saves data to the same backend
+
+### Quick Start (Local Mode)
+
+```bash
+# Start the server
+cd server
+npm run dev
+
+# In another terminal, start the client
+cd client
+npm run dev
+
+# Open your browser to:
+# http://localhost:5173/local.html
+```
+
+That's it! No Discord configuration needed for local development.
+
+### Switching Between Modes
+
+- **Local Mode**: Access via `http://localhost:5173/local.html` or `http://localhost:5173/`
+- **Discord Mode**: Access via Discord Activity URL (requires Discord Developer setup)
+
+The app automatically detects which mode to use based on the environment.
 
 ## API Endpoints
 

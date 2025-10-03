@@ -272,6 +272,34 @@ button.secondary:hover {
   margin: 1rem 0;
 }
 
+/* Dev mode helpers */
+.dev-hint {
+  font-size: 0.75rem;
+  color: #888;
+  text-align: center;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(44, 90, 160, 0.1);
+  border-radius: 4px;
+}
+
+/* Optional: Add subtle row indicators in dev mode */
+.game-grid.dev-mode .word-button:nth-child(4n + 1) {
+  border-left: 3px solid rgba(249, 223, 109, 0.3);
+}
+
+.game-grid.dev-mode .word-button:nth-child(n + 5):nth-child(-n + 8) {
+  border-left: 3px solid rgba(160, 195, 90, 0.3);
+}
+
+.game-grid.dev-mode .word-button:nth-child(n + 9):nth-child(-n + 12) {
+  border-left: 3px solid rgba(176, 196, 239, 0.3);
+}
+
+.game-grid.dev-mode .word-button:nth-child(n + 13):nth-child(-n + 16) {
+  border-left: 3px solid rgba(186, 129, 197, 0.3);
+}
+
 @media (max-width: 600px) {
   .game-grid {
     gap: 0.4rem;
