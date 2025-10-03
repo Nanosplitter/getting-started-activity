@@ -1,6 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
 import fetch from "node-fetch";
+import mysql from "mysql2/promise";
 dotenv.config({ path: "../.env" });
 
 const app = express();
@@ -9,27 +10,200 @@ const port = 3001;
 // Allow express to parse JSON bodies
 app.use(express.json());
 
+// MySQL connection pool
+let pool;
+
+// Initialize MySQL connection
+async function initializeDatabase() {
+  try {
+    // Check if MySQL connection string is provided
+    if (!process.env.MYSQL_CONNECTION_STRING) {
+      console.log("No MySQL connection string found - using in-memory storage");
+      console.log("To enable database storage, add MYSQL_CONNECTION_STRING to your .env file");
+      return;
+    }
+
+    // Create connection pool
+    pool = mysql.createPool(process.env.MYSQL_CONNECTION_STRING);
+
+    // Test the connection
+    const connection = await pool.getConnection();
+    console.log("✓ MySQL connected successfully!");
+
+    // Create tables if they don't exist
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS game_results (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        guild_id VARCHAR(255) NOT NULL,
+        user_id VARCHAR(255) NOT NULL,
+        username VARCHAR(255) NOT NULL,
+        game_date DATE NOT NULL,
+        score INT NOT NULL,
+        mistakes INT NOT NULL,
+        completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_guild_date (guild_id, game_date),
+        UNIQUE KEY unique_player_game (guild_id, user_id, game_date)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    console.log("✓ Database tables initialized!");
+    connection.release();
+  } catch (error) {
+    console.error("✗ Database initialization error:", error.message);
+    console.log("→ Continuing without database - using in-memory storage");
+    pool = null; // Ensure pool is null so we use fallback
+  }
+}
+
+// Initialize database on startup
+initializeDatabase();
+
+// Store game state per guild (fallback if DB is not available)
+// Format: { guildId: { date: string, players: { userId: { username: string, score: number, mistakes: number, completedAt: timestamp } } } }
+const gameState = {};
+
 app.post("/api/token", async (req, res) => {
-  
   // Exchange the code for an access_token
   const response = await fetch(`https://discord.com/api/oauth2/token`, {
     method: "POST",
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
+      "Content-Type": "application/x-www-form-urlencoded"
     },
     body: new URLSearchParams({
       client_id: process.env.VITE_DISCORD_CLIENT_ID,
       client_secret: process.env.DISCORD_CLIENT_SECRET,
       grant_type: "authorization_code",
-      code: req.body.code,
-    }),
+      code: req.body.code
+    })
   });
 
   // Retrieve the access_token from the response
   const { access_token } = await response.json();
 
   // Return the access_token to our client as { access_token: "..."}
-  res.send({access_token});
+  res.send({ access_token });
+});
+
+// Fetch NYT Connections game data for a given date
+app.get("/api/connections/:date", async (req, res) => {
+  try {
+    const { date } = req.params;
+    console.log(date);
+    const response = await fetch(`https://www.nytimes.com/svc/connections/v2/${date}.json`);
+    console.log(response);
+
+    if (!response.ok) {
+      return res.status(404).json({ error: "Game not found for this date" });
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    console.error("Error fetching connections data:", error);
+    res.status(500).json({ error: "Failed to fetch game data" });
+  }
+});
+
+// Get game state for a guild
+app.get("/api/gamestate/:guildId/:date", async (req, res) => {
+  const { guildId, date } = req.params;
+
+  try {
+    if (pool) {
+      // Fetch from database
+      const [rows] = await pool.query(
+        `SELECT user_id, username, score, mistakes, completed_at 
+         FROM game_results 
+         WHERE guild_id = ? AND game_date = ?`,
+        [guildId, date]
+      );
+
+      // Transform database results to match expected format
+      const players = {};
+      rows.forEach((row) => {
+        players[row.user_id] = {
+          username: row.username,
+          score: row.score,
+          mistakes: row.mistakes,
+          completedAt: new Date(row.completed_at).getTime()
+        };
+      });
+
+      res.json({ date, players });
+    } else {
+      // Fallback to in-memory storage
+      if (!gameState[guildId] || gameState[guildId].date !== date) {
+        gameState[guildId] = { date, players: {} };
+      }
+      res.json(gameState[guildId]);
+    }
+  } catch (error) {
+    console.error("Error fetching game state:", error);
+    // Fallback to in-memory on error
+    if (!gameState[guildId] || gameState[guildId].date !== date) {
+      gameState[guildId] = { date, players: {} };
+    }
+    res.json(gameState[guildId]);
+  }
+});
+
+// Save player's game result
+app.post("/api/gamestate/:guildId/:date/complete", async (req, res) => {
+  const { guildId, date } = req.params;
+  const { userId, username, score, mistakes } = req.body;
+
+  try {
+    if (pool) {
+      // Save to database
+      await pool.query(
+        `INSERT INTO game_results (guild_id, user_id, username, game_date, score, mistakes)
+         VALUES (?, ?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE 
+           username = VALUES(username),
+           score = VALUES(score),
+           mistakes = VALUES(mistakes),
+           completed_at = CURRENT_TIMESTAMP`,
+        [guildId, userId, username, date, score, mistakes]
+      );
+
+      // Fetch updated game state
+      const [rows] = await pool.query(
+        `SELECT user_id, username, score, mistakes, completed_at 
+         FROM game_results 
+         WHERE guild_id = ? AND game_date = ?`,
+        [guildId, date]
+      );
+
+      const players = {};
+      rows.forEach((row) => {
+        players[row.user_id] = {
+          username: row.username,
+          score: row.score,
+          mistakes: row.mistakes,
+          completedAt: new Date(row.completed_at).getTime()
+        };
+      });
+
+      res.json({ success: true, gameState: { date, players } });
+    } else {
+      // Fallback to in-memory storage
+      if (!gameState[guildId] || gameState[guildId].date !== date) {
+        gameState[guildId] = { date, players: {} };
+      }
+
+      gameState[guildId].players[userId] = {
+        username,
+        score,
+        mistakes,
+        completedAt: Date.now()
+      };
+
+      res.json({ success: true, gameState: gameState[guildId] });
+    }
+  } catch (error) {
+    console.error("Error saving game result:", error);
+    res.status(500).json({ error: "Failed to save game result" });
+  }
 });
 
 app.listen(port, () => {
