@@ -15,13 +15,17 @@ const port = 3001;
 
 // Add security headers for Discord Activities
 app.use((req, res, next) => {
-  // Allow Discord to embed the app
+  // Allow Discord to embed the app - frame-ancestors in CSP replaces X-Frame-Options
   res.setHeader(
     "Content-Security-Policy",
-    "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; " +
+    "default-src 'self' https:; " +
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.discordapp.com https://static.cloudflareinsights.com; " +
+      "style-src 'self' 'unsafe-inline'; " +
+      "img-src 'self' data: https: blob:; " +
+      "font-src 'self' data:; " +
+      "connect-src 'self' https: wss:; " +
       "frame-ancestors https://discord.com https://*.discord.com;"
   );
-  res.setHeader("X-Frame-Options", "ALLOW-FROM https://discord.com");
   next();
 });
 
