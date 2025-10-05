@@ -3,7 +3,8 @@
  */
 
 // Check if we're in local development mode (not in Discord iframe)
-export const isLocalMode = !window.location.ancestorOrigins?.length && window.location.hostname === "localhost";
+// In production, we're always in Discord mode unless explicitly on localhost
+export const isLocalMode = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
 
 // Game configuration
 export const GAME_CONFIG = {

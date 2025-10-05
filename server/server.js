@@ -13,6 +13,18 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = 3001;
 
+// Add security headers for Discord Activities
+app.use((req, res, next) => {
+  // Allow Discord to embed the app
+  res.setHeader(
+    "Content-Security-Policy",
+    "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; " +
+      "frame-ancestors https://discord.com https://*.discord.com;"
+  );
+  res.setHeader("X-Frame-Options", "ALLOW-FROM https://discord.com");
+  next();
+});
+
 // Allow express to parse JSON bodies
 app.use(express.json());
 
