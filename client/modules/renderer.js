@@ -2,7 +2,7 @@
  * UI rendering functions
  */
 
-import { getGameState, getRemainingWords, toggleWordSelection, clearSelection } from "./game-state.js";
+import { getGameState, getGameData, getRemainingWords, toggleWordSelection, clearSelection } from "./game-state.js";
 import { handleSubmit, handleShuffle } from "./game-logic.js";
 import { getCurrentUser, getDiscordSdk } from "./discord.js";
 import { isLocalMode, CATEGORY_COLORS } from "../config.js";
@@ -52,7 +52,7 @@ export function renderGame(serverGameState) {
 }
 
 /**
- * Render the list of completed players
+ * Render the list of completed players with visual guess history
  * @param {Object} serverGameState - Server game state
  * @returns {string} - HTML string
  */
@@ -65,16 +65,94 @@ function renderCompletedPlayers(serverGameState) {
 
   return `
     <div class="completed-players">
-      <h2>Completed Players</h2>
-      ${completedPlayers
-        .map(
-          ([userId, player]) => `
-        <div class="player-result">
-          <span class="player-name">${escapeHtml(player.username)}</span>
-          <span class="player-score">${player.score}/4 categories • ${player.mistakes} mistakes</span>
-        </div>
-      `
-        )
+      <h2>Completed Today</h2>
+      <div class="player-results-grid">
+        ${completedPlayers
+          .map(([userId, player]) => {
+            const guessHistory =
+              typeof player.guessHistory === "string" ? JSON.parse(player.guessHistory) : player.guessHistory;
+            return `
+          <div class="player-result-card">
+            ${renderPlayerAvatar(player)}
+            <div class="player-name">${escapeHtml(player.username)}</div>
+            ${renderGuessGrid(guessHistory)}
+          </div>
+        `;
+          })
+          .join("")}
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Render a player's avatar
+ * @param {Object} player - Player data
+ * @returns {string} - HTML string
+ */
+function renderPlayerAvatar(player) {
+  // Discord CDN avatar URL
+  if (player.avatar) {
+    const avatarUrl = `https://cdn.discordapp.com/avatars/${player.userId}/${player.avatar}.png?size=128`;
+    return `<img src="${avatarUrl}" alt="${escapeHtml(player.username)}" class="player-avatar" />`;
+  }
+
+  // Fallback to initials if no avatar
+  const initials = player.username.substring(0, 2).toUpperCase();
+  return `<div class="player-avatar-fallback">${initials}</div>`;
+}
+
+/**
+ * Get the difficulty level for a specific word
+ * @param {string} word - The word to check
+ * @returns {number|null} - Difficulty level (0-3) or null if not found
+ */
+function getWordDifficulty(word) {
+  const gameData = getGameData();
+  if (!gameData || !gameData.categories) return null;
+
+  for (const category of gameData.categories) {
+    if (category.members.includes(word)) {
+      return category.difficulty;
+    }
+  }
+  return null;
+}
+
+/**
+ * Render the visual guess grid (colored squares)
+ * @param {Array} guessHistory - Array of guess objects
+ * @returns {string} - HTML string
+ */
+function renderGuessGrid(guessHistory) {
+  if (!guessHistory || guessHistory.length === 0) {
+    return '<div class="guess-grid">No data</div>';
+  }
+
+  const colorEmojis = {
+    0: "🟨", // Yellow (easiest)
+    1: "🟩", // Green
+    2: "🟦", // Blue
+    3: "🟪" // Purple (hardest)
+  };
+
+  return `
+    <div class="guess-grid">
+      ${guessHistory
+        .map((guess) => {
+          if (guess.correct && guess.difficulty !== null) {
+            // Correct guess - show 4 squares of the same color
+            const emoji = colorEmojis[guess.difficulty] || "⬜";
+            return `<div class="guess-row">${emoji}${emoji}${emoji}${emoji}</div>`;
+          } else {
+            // Incorrect guess - show the actual colors of the words guessed
+            const emojis = guess.words.map((word) => {
+              const difficulty = getWordDifficulty(word);
+              return colorEmojis[difficulty] || "⬜";
+            });
+            return `<div class="guess-row">${emojis.join("")}</div>`;
+          }
+        })
         .join("")}
     </div>
   `;
@@ -88,6 +166,8 @@ function renderCompletedPlayers(serverGameState) {
  */
 function renderAlreadyPlayed(serverGameState, currentUser) {
   const playerData = serverGameState.players[currentUser.id];
+  const guessHistory =
+    typeof playerData.guessHistory === "string" ? JSON.parse(playerData.guessHistory) : playerData.guessHistory;
 
   return `
     <div class="game-over">
@@ -96,6 +176,7 @@ function renderAlreadyPlayed(serverGameState, currentUser) {
         Score: ${playerData.score}/4 categories<br>
         Mistakes: ${playerData.mistakes}/4
       </div>
+      ${renderGuessGrid(guessHistory)}
     </div>
   `;
 }
@@ -116,6 +197,7 @@ function renderGameOver() {
         You solved ${score}/4 categories<br>
         Mistakes: ${gameState.mistakes}/${gameState.maxMistakes}
       </div>
+      ${renderGuessGrid(gameState.guessHistory)}
     </div>
   `;
 }

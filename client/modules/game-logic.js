@@ -9,7 +9,9 @@ import {
   addSolvedCategory,
   incrementMistakes,
   completeGame,
-  clearSelection
+  clearSelection,
+  recordGuess,
+  getGuessHistory
 } from "./game-state.js";
 import { getCurrentUser, getGuildId } from "./discord.js";
 import { fetchGameState, saveGameResult as apiSaveGameResult } from "./api.js";
@@ -104,6 +106,7 @@ export async function handleSubmit() {
 
   if (matchedCategory) {
     // Correct guess!
+    recordGuess(gameState.selectedWords, true, matchedCategory.difficulty);
     addSolvedCategory(matchedCategory);
     clearSelection();
     showMessage("Correct! 🎉", "success");
@@ -119,6 +122,7 @@ export async function handleSubmit() {
     await refreshGame();
   } else {
     // Wrong guess
+    recordGuess(gameState.selectedWords, false, null);
     incrementMistakes();
     clearSelection();
 
@@ -172,8 +176,10 @@ async function saveGameResult() {
     await apiSaveGameResult(guildId, currentDate, {
       userId: currentUser.id,
       username: currentUser.username,
+      avatar: currentUser.avatar,
       score: gameState.solvedCategories.length,
-      mistakes: gameState.mistakes
+      mistakes: gameState.mistakes,
+      guessHistory: getGuessHistory()
     });
 
     gameState.hasPlayed = true;

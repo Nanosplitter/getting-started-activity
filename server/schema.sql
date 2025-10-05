@@ -14,9 +14,11 @@ CREATE TABLE IF NOT EXISTS game_results (
   guild_id VARCHAR(255) NOT NULL COMMENT 'Discord server/guild ID',
   user_id VARCHAR(255) NOT NULL COMMENT 'Discord user ID',
   username VARCHAR(255) NOT NULL COMMENT 'Discord username at time of play',
+  avatar VARCHAR(255) DEFAULT NULL COMMENT 'Discord avatar hash',
   game_date DATE NOT NULL COMMENT 'Date of the Connections game played',
   score INT NOT NULL COMMENT 'Number of categories solved (0-4)',
   mistakes INT NOT NULL COMMENT 'Number of mistakes made (0-4)',
+  guess_history JSON DEFAULT NULL COMMENT 'Array of guess attempts with difficulty levels',
   completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'When the game was completed',
   
   -- Indexes for performance

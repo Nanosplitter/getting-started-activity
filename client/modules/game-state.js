@@ -8,6 +8,7 @@ import { GAME_CONFIG } from "../config.js";
 let gameState = {
   selectedWords: [],
   solvedCategories: [],
+  guessHistory: [], // Array of guess attempts with category colors
   mistakes: 0,
   maxMistakes: GAME_CONFIG.maxMistakes,
   isGameOver: false,
@@ -33,6 +34,7 @@ export function resetGameState() {
   gameState = {
     selectedWords: [],
     solvedCategories: [],
+    guessHistory: [],
     mistakes: 0,
     maxMistakes: GAME_CONFIG.maxMistakes,
     isGameOver: false,
@@ -94,6 +96,29 @@ export function incrementMistakes() {
  */
 export function completeGame() {
   gameState.isGameOver = true;
+}
+
+/**
+ * Record a guess in the history
+ * @param {string[]} words - Words that were guessed
+ * @param {boolean} correct - Whether the guess was correct
+ * @param {number|null} difficulty - Difficulty level if correct (0-3), null if incorrect
+ */
+export function recordGuess(words, correct, difficulty = null) {
+  gameState.guessHistory.push({
+    words: [...words],
+    correct,
+    difficulty, // 0=yellow, 1=green, 2=blue, 3=purple
+    timestamp: Date.now()
+  });
+}
+
+/**
+ * Get the guess history
+ * @returns {Array} - Array of guess objects
+ */
+export function getGuessHistory() {
+  return gameState.guessHistory;
 }
 
 /**

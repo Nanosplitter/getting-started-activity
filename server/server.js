@@ -37,9 +37,11 @@ async function initializeDatabase() {
         guild_id VARCHAR(255) NOT NULL,
         user_id VARCHAR(255) NOT NULL,
         username VARCHAR(255) NOT NULL,
+        avatar VARCHAR(255) DEFAULT NULL,
         game_date DATE NOT NULL,
         score INT NOT NULL,
         mistakes INT NOT NULL,
+        guess_history JSON DEFAULT NULL,
         completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         INDEX idx_guild_date (guild_id, game_date),
         UNIQUE KEY unique_player_game (guild_id, user_id, game_date)
@@ -88,9 +90,7 @@ app.post("/api/token", async (req, res) => {
 app.get("/api/connections/:date", async (req, res) => {
   try {
     const { date } = req.params;
-    console.log(date);
     const response = await fetch(`https://www.nytimes.com/svc/connections/v2/${date}.json`);
-    console.log(response);
 
     if (!response.ok) {
       return res.status(404).json({ error: "Game not found for this date" });
@@ -112,7 +112,7 @@ app.get("/api/gamestate/:guildId/:date", async (req, res) => {
     if (pool) {
       // Fetch from database
       const [rows] = await pool.query(
-        `SELECT user_id, username, score, mistakes, completed_at 
+        `SELECT user_id, username, avatar, score, mistakes, guess_history, completed_at 
          FROM game_results 
          WHERE guild_id = ? AND game_date = ?`,
         [guildId, date]
@@ -123,8 +123,10 @@ app.get("/api/gamestate/:guildId/:date", async (req, res) => {
       rows.forEach((row) => {
         players[row.user_id] = {
           username: row.username,
+          avatar: row.avatar,
           score: row.score,
           mistakes: row.mistakes,
+          guessHistory: row.guess_history,
           completedAt: new Date(row.completed_at).getTime()
         };
       });
@@ -150,25 +152,27 @@ app.get("/api/gamestate/:guildId/:date", async (req, res) => {
 // Save player's game result
 app.post("/api/gamestate/:guildId/:date/complete", async (req, res) => {
   const { guildId, date } = req.params;
-  const { userId, username, score, mistakes } = req.body;
+  const { userId, username, avatar, score, mistakes, guessHistory } = req.body;
 
   try {
     if (pool) {
       // Save to database
       await pool.query(
-        `INSERT INTO game_results (guild_id, user_id, username, game_date, score, mistakes)
-         VALUES (?, ?, ?, ?, ?, ?)
+        `INSERT INTO game_results (guild_id, user_id, username, avatar, game_date, score, mistakes, guess_history)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE 
            username = VALUES(username),
+           avatar = VALUES(avatar),
            score = VALUES(score),
            mistakes = VALUES(mistakes),
+           guess_history = VALUES(guess_history),
            completed_at = CURRENT_TIMESTAMP`,
-        [guildId, userId, username, date, score, mistakes]
+        [guildId, userId, username, avatar, date, score, mistakes, JSON.stringify(guessHistory)]
       );
 
       // Fetch updated game state
       const [rows] = await pool.query(
-        `SELECT user_id, username, score, mistakes, completed_at 
+        `SELECT user_id, username, avatar, score, mistakes, guess_history, completed_at 
          FROM game_results 
          WHERE guild_id = ? AND game_date = ?`,
         [guildId, date]
@@ -178,8 +182,10 @@ app.post("/api/gamestate/:guildId/:date/complete", async (req, res) => {
       rows.forEach((row) => {
         players[row.user_id] = {
           username: row.username,
+          avatar: row.avatar,
           score: row.score,
           mistakes: row.mistakes,
+          guessHistory: row.guess_history,
           completedAt: new Date(row.completed_at).getTime()
         };
       });
@@ -193,8 +199,10 @@ app.post("/api/gamestate/:guildId/:date/complete", async (req, res) => {
 
       gameState[guildId].players[userId] = {
         username,
+        avatar,
         score,
         mistakes,
+        guessHistory,
         completedAt: Date.now()
       };
 
