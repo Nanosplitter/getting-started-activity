@@ -5,7 +5,7 @@ export default defineConfig({
   envDir: "../",
   server: {
     // Allow trycloudflare hostnames created by an ephemeral cloudflared tunnel
-    allowedHosts: ["odds-relax-ordered-ethnic.trycloudflare.com"],
+    allowedHosts: ["connections.nanosplitter.com"],
     proxy: {
       "/api": {
         target: "http://localhost:3001",
