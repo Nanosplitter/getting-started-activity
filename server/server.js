@@ -2,7 +2,13 @@ import express from "express";
 import dotenv from "dotenv";
 import fetch from "node-fetch";
 import mysql from "mysql2/promise";
+import path from "path";
+import { fileURLToPath } from "url";
+
 dotenv.config({ path: "../.env" });
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const port = 3001;
@@ -212,6 +218,14 @@ app.post("/api/gamestate/:guildId/:date/complete", async (req, res) => {
     console.error("Error saving game result:", error);
     res.status(500).json({ error: "Failed to save game result" });
   }
+});
+
+// Serve static files from the client build (for production)
+app.use(express.static(path.join(__dirname, "../client/dist")));
+
+// Handle client-side routing - serve index.html for all non-API routes
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../client/dist/index.html"));
 });
 
 app.listen(port, () => {
