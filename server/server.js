@@ -260,11 +260,17 @@ app.post("/api/gamestate/:guildId/:date/complete", async (req, res) => {
 });
 
 // Serve static files from the client build (for production)
-app.use(express.static(path.join(__dirname, "../client/dist")));
+const distPath = path.join(__dirname, "../client/dist");
+console.log("📁 Serving static files from:", distPath);
+console.log("📂 Directory contents:", distPath);
+
+app.use(express.static(distPath));
 
 // Handle client-side routing - serve index.html for all non-API routes
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "../client/dist/index.html"));
+  const indexPath = path.join(distPath, "index.html");
+  console.log("📄 Serving index.html from:", indexPath);
+  res.sendFile(indexPath);
 });
 
 app.listen(port, () => {
