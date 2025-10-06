@@ -44,23 +44,27 @@ export async function setupDiscordSdk() {
   // Retrieve an access_token from your activity's server
   let tokenData;
   if (isLocalMode) {
-    // Use mock token endpoint in local mode
     tokenData = await mockTokenEndpoint(code);
   } else {
-    // Use real server endpoint in Discord mode
-    const response = await fetch(API_ENDPOINTS.token, {
+    // Use relative URL instead of absolute
+    const response = await fetch("/api/token", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({ code })
     });
+
+    if (!response.ok) {
+      throw new Error(`Token request failed: ${response.status}`);
+    }
+
     tokenData = await response.json();
   }
 
   const { access_token } = tokenData;
 
-  // Authenticate with Discord client (using the access_token)
+  // Authenticate with Discord client
   auth = await discordSdk.commands.authenticate({
     access_token
   });
@@ -69,7 +73,6 @@ export async function setupDiscordSdk() {
     throw new Error("Authenticate command failed");
   }
 
-  // Get current user info
   currentUser = auth.user;
   console.log("Current user:", currentUser);
 
