@@ -15,6 +15,23 @@ const port = 3001;
 
 // Add security headers for Discord Activities
 app.use((req, res, next) => {
+  // CORS - Allow Discord origins
+  const allowedOrigins = [
+    "https://discord.com",
+    "https://canary.discord.com",
+    "https://ptb.discord.com",
+    "null" // For Discord's embedded iframe
+  ];
+
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin) || !origin) {
+    res.setHeader("Access-Control-Allow-Origin", origin || "*");
+  }
+
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+
   // Allow Discord to embed the app - frame-ancestors in CSP replaces X-Frame-Options
   res.setHeader(
     "Content-Security-Policy",
@@ -26,6 +43,12 @@ app.use((req, res, next) => {
       "connect-src 'self' https: wss:; " +
       "frame-ancestors https://discord.com https://*.discord.com;"
   );
+
+  // Handle preflight requests
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+
   next();
 });
 
