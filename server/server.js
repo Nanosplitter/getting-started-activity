@@ -13,26 +13,28 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = 3001;
 
-// Add security headers for Discord Activities
 app.use((req, res, next) => {
   // CORS - Allow Discord origins
   const allowedOrigins = [
     "https://discord.com",
     "https://canary.discord.com",
     "https://ptb.discord.com",
-    "null" // For Discord's embedded iframe
+    "https://connections-3wdu.onrender.com",
+    "null"
   ];
 
   const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin) || !origin) {
-    res.setHeader("Access-Control-Allow-Origin", origin || "*");
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  } else if (!origin) {
+    res.setHeader("Access-Control-Allow-Origin", "*");
   }
 
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   res.setHeader("Access-Control-Allow-Credentials", "true");
 
-  // Allow Discord to embed the app - frame-ancestors in CSP replaces X-Frame-Options
+  // CSP headers
   res.setHeader(
     "Content-Security-Policy",
     "default-src 'self' https:; " +
@@ -40,11 +42,10 @@ app.use((req, res, next) => {
       "style-src 'self' 'unsafe-inline'; " +
       "img-src 'self' data: https: blob:; " +
       "font-src 'self' data:; " +
-      "connect-src 'self' https: wss:; " +
+      "connect-src 'self' https: wss: https://discord.com https://*.discord.com; " +
       "frame-ancestors https://discord.com https://*.discord.com;"
   );
 
-  // Handle preflight requests
   if (req.method === "OPTIONS") {
     return res.sendStatus(200);
   }
