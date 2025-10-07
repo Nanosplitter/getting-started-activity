@@ -1,0 +1,20 @@
+{
+  "name": "connections-discord-bot",
+  "version": "1.0.0",
+  "description": "Discord bot for Connections game activity",
+  "main": "bot.js",
+  "type": "module",
+  "scripts": {
+    "start": "node bot.js",
+    "dev": "node --watch bot.js",
+    "register": "node register-commands.js"
+  },
+  "keywords": ["discord", "bot", "connections"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "discord.js": "^14.14.1",
+    "dotenv": "^16.4.1",
+    "mysql2": "^3.15.1"
+  }
+}
