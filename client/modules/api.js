@@ -68,3 +68,22 @@ export async function saveGameResult(guildId, date, result) {
 
   return response.json();
 }
+
+/**
+ * Delete game result from the server (for dev/testing purposes)
+ * @param {string} guildId - Guild ID
+ * @param {string} date - Date in YYYY-MM-DD format
+ * @param {string} userId - User ID
+ * @returns {Promise<Object>} - Server response
+ */
+export async function deleteGameResult(guildId, date, userId) {
+  const response = await fetch(API_ENDPOINTS.deleteGame(guildId, date, userId), {
+    method: "DELETE"
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to delete game result");
+  }
+
+  return response.json();
+}

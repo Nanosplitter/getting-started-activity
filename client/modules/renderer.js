@@ -2,11 +2,19 @@
  * UI rendering functions
  */
 
-import { getGameState, getGameData, getRemainingWords, toggleWordSelection, clearSelection } from "./game-state.js";
+import {
+  getGameState,
+  getGameData,
+  getRemainingWords,
+  toggleWordSelection,
+  clearSelection,
+  getCurrentDate
+} from "./game-state.js";
 import { handleSubmit, handleShuffle } from "./game-logic.js";
 import { getCurrentUser, getDiscordSdk } from "./discord.js";
-import { isLocalMode, CATEGORY_COLORS } from "../config.js";
+import { isLocalMode, isDevMode, CATEGORY_COLORS } from "../config.js";
 import { escapeHtml } from "../utils/helpers.js";
+import { deleteGameResult } from "./api.js";
 
 /**
  * Render the complete game UI
@@ -20,13 +28,12 @@ export function renderGame(serverGameState) {
 
   let html = `<h1>Connections</h1>`;
 
-  // Show local mode indicator
-  if (isLocalMode) {
+  // Show dev mode indicator
+  if (isDevMode) {
+    const modeText = isLocalMode ? "Local Development Mode" : "Dev Mode (Discord SDK Active)";
     html += `
-      <div style="background: #2c5aa0; color: white; padding: 0.5rem; border-radius: 4px; margin-bottom: 1rem; font-size: 0.9rem; text-align: center;">
-        🔧 Local Development Mode | User: ${currentUser?.username || "Unknown"} | Guild: ${
-      discordSdk?.guildId || "default"
-    }
+      <div class="dev-mode-banner">
+        🔧 ${modeText} | User: ${currentUser?.username || "Unknown"} | Guild: ${discordSdk?.guildId || "default"}
       </div>
     `;
   }
@@ -48,6 +55,11 @@ export function renderGame(serverGameState) {
   // Attach event listeners if game is active
   if (!gameState.isGameOver && !gameState.hasPlayed) {
     attachEventListeners();
+  }
+
+  // Attach delete button listener if in dev mode and game is finished
+  if (isDevMode && (gameState.isGameOver || gameState.hasPlayed)) {
+    attachDeleteListener();
   }
 }
 
@@ -177,6 +189,7 @@ function renderAlreadyPlayed(serverGameState, currentUser) {
         Mistakes: ${playerData.mistakes}/4
       </div>
       ${renderGuessGrid(guessHistory)}
+      ${isDevMode ? '<button id="delete-record" class="dev-delete-btn">🗑️ Delete My Record (Dev Mode)</button>' : ""}
     </div>
   `;
 }
@@ -198,6 +211,7 @@ function renderGameOver() {
         Mistakes: ${gameState.mistakes}/${gameState.maxMistakes}
       </div>
       ${renderGuessGrid(gameState.guessHistory)}
+      ${isDevMode ? '<button id="delete-record" class="dev-delete-btn">🗑️ Delete My Record (Dev Mode)</button>' : ""}
     </div>
   `;
 }
@@ -272,12 +286,12 @@ function renderSolvedCategories() {
 function renderWordGrid() {
   const remainingWords = getRemainingWords();
 
-  // In local mode, keep words in category order for easier development
-  // In Discord mode, shuffle for normal gameplay
+  // In dev mode, keep words in category order for easier development
+  // In normal mode, shuffle for gameplay
   let displayWords;
   let html = "";
 
-  if (isLocalMode) {
+  if (isDevMode) {
     displayWords = remainingWords; // Keep in category order
     html += `<div class="dev-hint">
       💡 Dev Mode: Words are in category order | Each row = one category | Color bars show grouping
@@ -287,7 +301,7 @@ function renderWordGrid() {
   }
 
   html += `
-    <div class="game-grid ${isLocalMode ? "dev-mode" : ""}">
+    <div class="game-grid ${isDevMode ? "dev-mode" : ""}">
       ${displayWords
         .map(
           (word) => `
@@ -361,5 +375,35 @@ function updateSubmitButton() {
   const submitBtn = document.getElementById("submit");
   if (submitBtn) {
     submitBtn.disabled = gameState.selectedWords.length !== 4;
+  }
+}
+
+/**
+ * Attach event listener to delete button (dev mode only)
+ */
+function attachDeleteListener() {
+  const deleteBtn = document.getElementById("delete-record");
+  if (deleteBtn) {
+    deleteBtn.addEventListener("click", async () => {
+      const currentUser = getCurrentUser();
+      const discordSdk = getDiscordSdk();
+      const guildId = discordSdk?.guildId || "default";
+      const currentDate = getCurrentDate();
+
+      try {
+        deleteBtn.disabled = true;
+        deleteBtn.textContent = "Deleting...";
+
+        await deleteGameResult(guildId, currentDate, currentUser.id);
+
+        // Reload the page to restart the game
+        window.location.reload();
+      } catch (error) {
+        console.error("Error deleting game result:", error);
+        alert("Failed to delete record. Please try again.");
+        deleteBtn.disabled = false;
+        deleteBtn.textContent = "🗑️ Delete My Record (Dev Mode)";
+      }
+    });
   }
 }

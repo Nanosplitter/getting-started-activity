@@ -6,6 +6,10 @@
 // In production, we're always in Discord mode unless explicitly on localhost
 export const isLocalMode = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
 
+// Check if dev mode is enabled (shows answers in order like local mode, but still uses Discord SDK)
+// Can be enabled via environment variable: VITE_DEV_MODE=true
+export const isDevMode = import.meta.env.VITE_DEV_MODE === 'true' || isLocalMode;
+
 // Game configuration
 export const GAME_CONFIG = {
   maxMistakes: 4,
@@ -33,5 +37,6 @@ export const API_ENDPOINTS = {
   token: "/api/token",
   connections: (date) => `/api/connections/${date}`,
   gameState: (guildId, date) => `/api/gamestate/${guildId}/${date}`,
-  completeGame: (guildId, date) => `/api/gamestate/${guildId}/${date}/complete`
+  completeGame: (guildId, date) => `/api/gamestate/${guildId}/${date}/complete`,
+  deleteGame: (guildId, date, userId) => `/api/gamestate/${guildId}/${date}/${userId}`
 };

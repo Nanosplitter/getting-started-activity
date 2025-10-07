@@ -260,6 +260,52 @@ app.post("/api/gamestate/:guildId/:date/complete", async (req, res) => {
   }
 });
 
+// Delete player's game result (for dev/testing purposes)
+app.delete("/api/gamestate/:guildId/:date/:userId", async (req, res) => {
+  const { guildId, date, userId } = req.params;
+
+  try {
+    if (pool) {
+      // Delete from database
+      await pool.query(
+        `DELETE FROM game_results WHERE guild_id = ? AND game_date = ? AND user_id = ?`,
+        [guildId, date, userId]
+      );
+
+      // Fetch updated game state
+      const [rows] = await pool.query(
+        `SELECT user_id, username, avatar, score, mistakes, guess_history, completed_at
+         FROM game_results
+         WHERE guild_id = ? AND game_date = ?`,
+        [guildId, date]
+      );
+
+      const players = {};
+      rows.forEach((row) => {
+        players[row.user_id] = {
+          username: row.username,
+          avatar: row.avatar,
+          score: row.score,
+          mistakes: row.mistakes,
+          guessHistory: row.guess_history,
+          completedAt: new Date(row.completed_at).getTime()
+        };
+      });
+
+      res.json({ success: true, gameState: { date, players } });
+    } else {
+      // Fallback to in-memory storage
+      if (gameState[guildId] && gameState[guildId].players) {
+        delete gameState[guildId].players[userId];
+      }
+      res.json({ success: true, gameState: gameState[guildId] || { date, players: {} } });
+    }
+  } catch (error) {
+    console.error("Error deleting game result:", error);
+    res.status(500).json({ error: "Failed to delete game result" });
+  }
+});
+
 // Serve static files from the client build (for production)
 const distPath = path.join(__dirname, "../client/dist");
 console.log("📁 Serving static files from:", distPath);
