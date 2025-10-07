@@ -393,7 +393,7 @@ button.secondary:hover {
 }
 
 /* Optional: Add subtle row indicators in dev mode */
-.game-grid.dev-mode .word-button:nth-child(4n + 1) {
+.game-grid.dev-mode .word-button:nth-child(n + 1):nth-child(-n + 4) {
   border-left: 3px solid rgba(249, 223, 109, 0.3);
 }
 
