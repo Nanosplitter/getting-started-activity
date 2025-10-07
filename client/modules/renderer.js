@@ -85,7 +85,7 @@ function renderCompletedPlayers(serverGameState) {
               typeof player.guessHistory === "string" ? JSON.parse(player.guessHistory) : player.guessHistory;
             return `
           <div class="player-result-card">
-            ${renderPlayerAvatar(player)}
+            ${renderPlayerAvatar(player, userId)}
             <div class="player-name">${escapeHtml(player.username)}</div>
             ${renderGuessGrid(guessHistory)}
           </div>
@@ -100,12 +100,13 @@ function renderCompletedPlayers(serverGameState) {
 /**
  * Render a player's avatar
  * @param {Object} player - Player data
+ * @param {string} userId - User ID
  * @returns {string} - HTML string
  */
-function renderPlayerAvatar(player) {
+function renderPlayerAvatar(player, userId) {
   // Discord CDN avatar URL
   if (player.avatar) {
-    const avatarUrl = `https://cdn.discordapp.com/avatars/${player.userId}/${player.avatar}.png?size=128`;
+    const avatarUrl = `https://cdn.discordapp.com/avatars/${userId}/${player.avatar}.png?size=128`;
     return `<img src="${avatarUrl}" alt="${escapeHtml(player.username)}" class="player-avatar" />`;
   }
 
