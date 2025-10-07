@@ -1,6 +1,14 @@
 # Build stage for client
 FROM node:18-alpine AS client-builder
 WORKDIR /app/client
+
+# Accept build args for environment variables
+ARG VITE_DISCORD_CLIENT_ID
+ARG DISCORD_CLIENT_SECRET
+
+# Set as environment variables for the build
+ENV VITE_DISCORD_CLIENT_ID=${VITE_DISCORD_CLIENT_ID}
+
 COPY client/package*.json ./
 RUN npm ci
 COPY client/ ./

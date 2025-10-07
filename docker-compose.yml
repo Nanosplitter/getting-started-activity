@@ -2,7 +2,11 @@ version: "3.8"
 
 services:
   connections-game:
-    build: .
+    build:
+      context: .
+      args:
+        VITE_DISCORD_CLIENT_ID: ${VITE_DISCORD_CLIENT_ID}
+        DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET}
     container_name: connections-game
     restart: unless-stopped
     ports:

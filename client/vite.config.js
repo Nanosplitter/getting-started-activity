@@ -3,7 +3,7 @@ import { defineConfig } from "vite";
 export default defineConfig({
   envDir: "../",
   server: {
-    allowedHosts: ["connections-3wdu.onrender.com"],
+    allowedHosts: ["connections.nanosplitter.com"],
     proxy: {
       "/api": {
         target: "http://localhost:3001",
