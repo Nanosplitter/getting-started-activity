@@ -137,7 +137,14 @@ export async function handleSubmit() {
     // Wrong guess - keep selection so user can adjust
     const guessedWords = [...gameState.selectedWords];
 
-    recordGuess(gameState.selectedWords, false, null);
+    // Get the difficulty for each word to show in the result
+    const wordDifficulties = guessedWords.map(word => {
+      const gameData = getGameData();
+      const category = gameData.categories.find(cat => cat.members.includes(word));
+      return category ? category.difficulty : null;
+    });
+
+    recordGuess(gameState.selectedWords, false, null, wordDifficulties);
     incrementMistakes();
     // Don't clear selection - let them adjust their guess
 

@@ -105,12 +105,14 @@ export function completeGame() {
  * @param {string[]} words - Words that were guessed
  * @param {boolean} correct - Whether the guess was correct
  * @param {number|null} difficulty - Difficulty level if correct (0-3), null if incorrect
+ * @param {number[]|null} wordDifficulties - Array of difficulties for each word (for incorrect guesses)
  */
-export function recordGuess(words, correct, difficulty = null) {
+export function recordGuess(words, correct, difficulty = null, wordDifficulties = null) {
   gameState.guessHistory.push({
     words: [...words],
     correct,
-    difficulty, // 0=yellow, 1=green, 2=blue, 3=purple
+    difficulty, // 0=yellow, 1=green, 2=blue, 3=purple (for correct guesses)
+    wordDifficulties, // Array of difficulties for each word (for incorrect guesses)
     timestamp: Date.now()
   });
 }

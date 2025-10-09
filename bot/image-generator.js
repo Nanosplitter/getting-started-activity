@@ -3,7 +3,7 @@ import { createCanvas, loadImage } from "@napi-rs/canvas";
 /**
  * Generate a Connections game grid image for multiple players
  * @param {Object} options - Image generation options
- * @param {Array} options.players - Array of player objects: { username, avatarUrl, guessHistory }
+ * @param {Array} options.players - Array of player objects: { username, avatarUrl, guessHistory, isComplete }
  * @param {number} options.puzzleNumber - Puzzle number
  * @returns {Buffer} PNG image buffer
  */
@@ -129,18 +129,33 @@ async function generateSinglePlayerImage(player, puzzleNumber) {
   };
   const incorrectColor = "#5a5a5a";
 
+  // Check if game is complete (4 correct OR 4 mistakes)
+  const correctCount = guessHistory.filter(g => g.correct).length;
+  const mistakeCount = guessHistory.filter(g => !g.correct).length;
+  const isGameComplete = correctCount === 4 || mistakeCount >= 4;
+
   // Draw guess grid
   guessHistory.forEach((guess, rowIndex) => {
     const rowY = gridStartY + rowIndex * (cellSize + cellSpacing);
 
     if (guess.correct && guess.difficulty !== null) {
+      // Correct guess - all same color
       const color = colors[guess.difficulty] || incorrectColor;
       for (let col = 0; col < 4; col++) {
         const cellX = gridX + col * (cellSize + cellSpacing);
         ctx.fillStyle = color;
         ctx.fillRect(cellX, rowY, cellSize, cellSize);
       }
+    } else if (isGameComplete && guess.wordDifficulties && guess.wordDifficulties.length === 4) {
+      // Incorrect guess - show word colors ONLY if game is complete
+      for (let col = 0; col < 4; col++) {
+        const cellX = gridX + col * (cellSize + cellSpacing);
+        const wordDiff = guess.wordDifficulties[col];
+        ctx.fillStyle = wordDiff !== null ? (colors[wordDiff] || incorrectColor) : incorrectColor;
+        ctx.fillRect(cellX, rowY, cellSize, cellSize);
+      }
     } else {
+      // Game in progress OR no word difficulties - gray squares
       for (let col = 0; col < 4; col++) {
         const cellX = gridX + col * (cellSize + cellSpacing);
         ctx.fillStyle = incorrectColor;
@@ -207,6 +222,11 @@ async function drawPlayerSection(ctx, player, x, y, width) {
 
   const incorrectColor = "#5a5a5a"; // Gray
 
+  // Check if this player's game is complete
+  const correctCount = guessHistory.filter(g => g.correct).length;
+  const mistakeCount = guessHistory.filter(g => !g.correct).length;
+  const isGameComplete = correctCount === 4 || mistakeCount >= 4;
+
   // Draw guess grid
   guessHistory.forEach((guess, rowIndex) => {
     const rowY = gridY + rowIndex * (cellSize + cellSpacing);
@@ -219,8 +239,16 @@ async function drawPlayerSection(ctx, player, x, y, width) {
         ctx.fillStyle = color;
         ctx.fillRect(cellX, rowY, cellSize, cellSize);
       }
+    } else if (isGameComplete && guess.wordDifficulties && guess.wordDifficulties.length === 4) {
+      // Incorrect guess - show word colors ONLY if game is complete
+      for (let col = 0; col < 4; col++) {
+        const cellX = gridX + col * (cellSize + cellSpacing);
+        const wordDiff = guess.wordDifficulties[col];
+        ctx.fillStyle = wordDiff !== null ? (colors[wordDiff] || incorrectColor) : incorrectColor;
+        ctx.fillRect(cellX, rowY, cellSize, cellSize);
+      }
     } else {
-      // Incorrect guess - show gray squares
+      // Game in progress OR no word difficulties - gray squares
       for (let col = 0; col < 4; col++) {
         const cellX = gridX + col * (cellSize + cellSpacing);
         ctx.fillStyle = incorrectColor;
