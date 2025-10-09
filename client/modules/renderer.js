@@ -190,7 +190,7 @@ function renderAlreadyPlayed(serverGameState, currentUser) {
         Mistakes: ${playerData.mistakes}/4
       </div>
       ${renderGuessGrid(guessHistory)}
-      ${isDevMode ? '<button id="delete-record" class="dev-delete-btn">🗑️ Delete My Record (Dev Mode)</button>' : ""}
+      ${isDevMode ? '<button id="delete-record" class="dev-delete-btn">Delete My Record</button>' : ""}
     </div>
   `;
 }
@@ -212,7 +212,7 @@ function renderGameOver() {
         Mistakes: ${gameState.mistakes}/${gameState.maxMistakes}
       </div>
       ${renderGuessGrid(gameState.guessHistory)}
-      ${isDevMode ? '<button id="delete-record" class="dev-delete-btn">🗑️ Delete My Record (Dev Mode)</button>' : ""}
+      ${isDevMode ? '<button id="delete-record" class="dev-delete-btn">Delete My Record (Dev Mode)</button>' : ""}
     </div>
   `;
 }
@@ -294,9 +294,6 @@ function renderWordGrid() {
 
   if (isDevMode) {
     displayWords = remainingWords; // Keep in category order
-    html += `<div class="dev-hint">
-      💡 Dev Mode: Words are in category order | Each row = one category | Color bars show grouping
-    </div>`;
   } else {
     displayWords = [...remainingWords].sort(() => Math.random() - 0.5); // Shuffle
   }
@@ -308,16 +305,14 @@ function renderWordGrid() {
   html += `
     <div class="game-grid ${isDevMode ? "dev-mode" : ""}">
       ${displayWords
-        .map(
-          (word) => {
-            const isSelected = selectedWords.includes(word);
-            return `
+        .map((word) => {
+          const isSelected = selectedWords.includes(word);
+          return `
         <button class="word-button ${isSelected ? "selected" : ""}" data-word="${escapeHtml(word)}">
           ${escapeHtml(word)}
         </button>
       `;
-          }
-        )
+        })
         .join("")}
     </div>
   `;
@@ -410,7 +405,7 @@ function attachDeleteListener() {
         console.error("Error deleting game result:", error);
         alert("Failed to delete record. Please try again.");
         deleteBtn.disabled = false;
-        deleteBtn.textContent = "🗑️ Delete My Record (Dev Mode)";
+        deleteBtn.textContent = "Delete My Record (Dev Mode)";
       }
     });
   }

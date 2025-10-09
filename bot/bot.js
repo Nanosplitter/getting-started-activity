@@ -257,6 +257,31 @@ function getPuzzleNumber() {
 }
 
 /**
+ * Check if a player's game is complete
+ * @param {Object} player - Player object with guessHistory
+ * @returns {boolean} - True if game is complete (4 correct OR 4 mistakes)
+ */
+function isPlayerGameComplete(player) {
+  const guessHistory = player.guessHistory || [];
+  const correctCount = guessHistory.filter(g => g.correct).length;
+  const mistakeCount = guessHistory.filter(g => !g.correct).length;
+  return correctCount === 4 || mistakeCount >= 4;
+}
+
+/**
+ * Check if a session has any active (still playing) players
+ * @param {Object} session - Session object
+ * @returns {boolean} - True if at least one player is still playing
+ */
+function hasActivePlayer(session) {
+  if (!session.players || session.players.length === 0) {
+    return false;
+  }
+  // Return true if ANY player is NOT complete
+  return session.players.some(player => !isPlayerGameComplete(player));
+}
+
+/**
  * Start a game session and post initial message
  */
 async function startGameSession(interaction) {
@@ -367,6 +392,150 @@ async function startGameSession(interaction) {
 }
 
 /**
+ * Create a new session as a reply to an existing message
+ * @param {Object} interaction - Button interaction from user clicking Play
+ * @param {Object} originalSession - The original session that's now complete
+ */
+async function createReplySession(interaction, originalSession) {
+  try {
+    const userId = interaction.user.id;
+    const username = interaction.user.username;
+    const avatarUrl = interaction.user.displayAvatarURL({ format: "png" });
+    const puzzleNumber = originalSession.puzzleNumber;
+
+    console.log(`🔄 Creating reply session for ${username} (original session complete)`);
+
+    // Generate initial image with the new player
+    const imageBuffer = await generateGameImage({
+      players: [{
+        userId,
+        username,
+        avatarUrl,
+        guessHistory: [],
+        lastGuessCount: 0
+      }],
+      puzzleNumber
+    });
+
+    const attachment = new AttachmentBuilder(imageBuffer, { name: "connections.png" });
+
+    // Fetch the channel to ensure we have access
+    const channel = await client.channels.fetch(originalSession.channelId);
+    if (!channel || !channel.isTextBased()) {
+      throw new Error("Channel not found or is not text-based");
+    }
+
+    // Create message as reply to original
+    const replyMessage = await channel.send({
+      content: `**${username}** is playing Connections #${puzzleNumber}`,
+      files: [attachment],
+      components: [
+        new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId(`launch_activity_temp`)
+            .setLabel("Play")
+            .setStyle(ButtonStyle.Primary)
+            .setEmoji("🎮")
+        )
+      ],
+      reply: { messageReference: originalSession.messageId }
+    });
+
+    // Now use the reply message ID as the new session ID
+    const newSessionId = replyMessage.id;
+
+    console.log(`✅ Created reply message ${newSessionId} in response to ${originalSession.messageId}`);
+
+    // Update button with real session ID
+    await replyMessage.edit({
+      components: [
+        new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId(`launch_activity_${newSessionId}`)
+            .setLabel("Play")
+            .setStyle(ButtonStyle.Primary)
+            .setEmoji("🎮")
+        )
+      ]
+    });
+
+    // Create new session (note: no interaction stored, we'll use REST API for edits)
+    activeSessions.set(newSessionId, {
+      sessionId: newSessionId,
+      channelId: interaction.channelId,
+      messageId: replyMessage.id,
+      guildId: originalSession.guildId,
+      puzzleNumber,
+      players: [{
+        userId,
+        username,
+        avatarUrl,
+        guessHistory: [],
+        lastGuessCount: 0
+      }],
+      interaction: null, // No interaction - will use REST API for edits
+      parentMessageId: originalSession.messageId // Track original message for threading
+    });
+
+    // Notify server about new session
+    try {
+      const gameDate = getTodayDate();
+      const response = await fetch(`http://localhost:3001/api/sessions/start`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: newSessionId,
+          guildId: originalSession.guildId,
+          channelId: interaction.channelId,
+          messageId: replyMessage.id
+        })
+      });
+
+      if (!response.ok) {
+        console.warn(`Server returned ${response.status} for reply session start`);
+      }
+
+      // Also register the user with the server
+      await fetch(`http://localhost:3001/api/sessions/${newSessionId}/join`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId,
+          username,
+          avatarUrl,
+          guildId: originalSession.guildId,
+          date: gameDate
+        })
+      });
+    } catch (error) {
+      console.error("Failed to notify server about reply session:", error.message);
+    }
+
+    console.log(`✓ Reply session ${newSessionId} created with ${username} as first player`);
+
+    // Launch the activity for the user using LAUNCH_ACTIVITY response
+    await client.rest.post(`/interactions/${interaction.id}/${interaction.token}/callback`, {
+      body: {
+        type: 12, // LAUNCH_ACTIVITY
+        data: {
+          activity_instance_id: process.env.VITE_DISCORD_CLIENT_ID
+        }
+      }
+    });
+
+    console.log(`🚀 Activity launched for ${username} in new reply session`);
+  } catch (error) {
+    console.error("Error creating reply session:", error);
+    // Try to acknowledge the interaction if we haven't already
+    try {
+      await interaction.deferUpdate();
+    } catch (e) {
+      // Ignore if interaction already acknowledged
+    }
+  }
+}
+
+/**
  * Check for session updates and update messages
  */
 async function checkSessionUpdates() {
@@ -461,6 +630,7 @@ async function checkSessionUpdates() {
           }
 
           if (session.interaction) {
+            // Use interaction if available (15-minute window)
             await session.interaction.editReply({
               content: messageText,
               files: [attachment],
@@ -468,7 +638,15 @@ async function checkSessionUpdates() {
             });
             console.log(`✅ Message updated via interaction!`);
           } else {
-            console.warn(`⚠️ No interaction stored, cannot update message`);
+            // Use REST API for reply sessions (no interaction token)
+            await client.rest.patch(Routes.channelMessage(session.channelId, session.messageId), {
+              body: {
+                content: messageText,
+                components: [row.toJSON()]
+              },
+              files: [{ name: "connections.png", data: imageBuffer }]
+            });
+            console.log(`✅ Message updated via REST API!`);
           }
 
           // Check if all players are complete (4 correct or 4 mistakes)
@@ -524,7 +702,15 @@ client.on("interactionCreate", async (interaction) => {
           const existingPlayer = session.players.find((p) => p.userId === userId);
 
           if (!existingPlayer) {
-            // Add new player to the session
+            // Check if there are any players AND all are complete
+            if (session.players.length > 0 && !hasActivePlayer(session)) {
+              // All players are done - create a new reply session instead
+              console.log(`🔄 All players in session ${sessionId} are complete - creating reply session`);
+              await createReplySession(interaction, session);
+              return; // Don't launch activity here - createReplySession handles it
+            }
+
+            // First player OR at least one player is still active - join the existing session
             session.players.push({
               userId,
               username,
