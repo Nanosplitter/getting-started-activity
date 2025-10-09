@@ -22,11 +22,7 @@ const __dirname = dirname(__filename);
 dotenv.config({ path: join(__dirname, "../.env") });
 
 const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
-  ],
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent],
   partials: [] // Ensure we get full objects
 });
 
@@ -266,46 +262,27 @@ function getPuzzleNumber() {
 async function startGameSession(interaction) {
   try {
     const guildId = interaction.guildId || "dm";
-    const userId = interaction.user.id;
-    const gameDate = getTodayDate();
-
-    console.log(`🎬 Starting session for guild: ${guildId}, user: ${userId}`);
-    console.log(`🏰 Guild in cache?`, client.guilds.cache.has(guildId));
-
-    // Use same sessionId format as client for consistency
-    const sessionId = `${guildId}_${userId}_${gameDate}`;
-
     const channelId = interaction.channelId;
-    const username = interaction.user.username;
-    const avatarUrl = interaction.user.displayAvatarURL({ format: "png" });
     const puzzleNumber = getPuzzleNumber();
 
-    // Check if session already exists (user might have run /connections multiple times)
-    if (activeSessions.has(sessionId)) {
-      return interaction.reply({
-        content: `You already have an active game session! Launch the Connections activity to continue playing.`,
-        flags: 64 // EPHEMERAL
-      });
-    }
+    console.log(`🎬 Starting new multi-user session for guild: ${guildId}`);
 
     // Defer the reply immediately to avoid timeout (we have 15 minutes after deferring)
     await interaction.deferReply();
 
-    // Generate initial image (empty state) - this may take a moment due to avatar loading
+    // Generate initial image (empty state - no players yet)
     const imageBuffer = await generateGameImage({
-      guessHistory: [],
-      gameData: null,
-      username: username,
-      avatarUrl: avatarUrl,
+      players: [], // Empty players array
       puzzleNumber: puzzleNumber
     });
 
     const attachment = new AttachmentBuilder(imageBuffer, { name: "connections.png" });
 
-    // Create button to launch activity (custom ID so we can handle the click)
+    // We'll set the session ID after we get the message ID
+    // For now, use a temporary ID in the button
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
-        .setCustomId(`launch_activity_${sessionId}`)
+        .setCustomId(`launch_activity_temp`)
         .setLabel("Play")
         .setStyle(ButtonStyle.Primary)
         .setEmoji("🎮")
@@ -313,33 +290,44 @@ async function startGameSession(interaction) {
 
     // Edit the deferred reply with the game message
     await interaction.editReply({
-      content: `**${username}** is playing Connections #${puzzleNumber}`,
+      content: `Click **Play** to join today's Connections #${puzzleNumber}`,
       files: [attachment],
       components: [row]
     });
 
     // Get the message object from the response
     const reply = await interaction.fetchReply();
-
-    // Use reply.channel.id instead of interaction.channelId to get the actual channel
     const actualChannelId = reply.channel?.id || reply.channelId || channelId;
 
-    console.log(`📍 Channel ID: ${actualChannelId}, Message ID: ${reply.id}`);
-    console.log(`📍 Reply channel type:`, reply.channel?.type);
-    console.log(`📍 Interaction context:`, interaction.context);
+    // Now use the message ID as the session ID
+    const sessionId = reply.id;
 
-    // Track the session - store the interaction for editing
+    console.log(`📍 Created session ${sessionId} in channel ${actualChannelId}`);
+
+    // Update the button with the real session ID
+    const updatedRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`launch_activity_${sessionId}`)
+        .setLabel("Play")
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji("🎮")
+    );
+
+    await interaction.editReply({
+      content: `Click **Play** to join today's Connections #${puzzleNumber}`,
+      files: [attachment],
+      components: [updatedRow]
+    });
+
+    // Track the session with new multi-player structure
     activeSessions.set(sessionId, {
+      sessionId,
       channelId: actualChannelId,
       messageId: reply.id,
-      userId,
-      username,
-      avatarUrl,
-      puzzleNumber,
-      lastGuessCount: 0,
       guildId: guildId,
-      // Store the interaction for editing the reply (works for 15 minutes)
-      interaction: interaction
+      puzzleNumber,
+      players: [], // Array of player objects: { userId, username, avatarUrl, guessHistory, lastGuessCount }
+      interaction: interaction // Store for editing
     });
 
     // Notify server about the session (if server is available)
@@ -349,9 +337,8 @@ async function startGameSession(interaction) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sessionId,
-          guildId: interaction.guildId || "dm",
-          channelId,
-          userId,
+          guildId: guildId,
+          channelId: actualChannelId,
           messageId: reply.id
         })
       });
@@ -363,7 +350,7 @@ async function startGameSession(interaction) {
       console.error("Failed to notify server about session:", error.message);
     }
 
-    console.log(`✓ Started game session ${sessionId} for user ${username}`);
+    console.log(`✓ Started multi-user game session ${sessionId}`);
   } catch (error) {
     console.error("Error starting game session:", error);
     // Try to reply or edit if we haven't already replied
@@ -496,6 +483,95 @@ client.on("interactionCreate", async (interaction) => {
   if (interaction.isButton()) {
     if (interaction.customId.startsWith("launch_activity_")) {
       try {
+        // Extract session ID from the button's custom ID
+        const sessionId = interaction.customId.replace("launch_activity_", "");
+
+        // Find the session
+        const session = activeSessions.get(sessionId);
+
+        if (session) {
+          const userId = interaction.user.id;
+          const username = interaction.user.username;
+          const avatarUrl = interaction.user.displayAvatarURL({ format: "png" });
+
+          // Check if user is already in the session
+          const existingPlayer = session.players.find((p) => p.userId === userId);
+
+          if (!existingPlayer) {
+            // Add new player to the session
+            session.players.push({
+              userId,
+              username,
+              avatarUrl,
+              guessHistory: [],
+              lastGuessCount: 0
+            });
+
+            console.log(`➕ Added ${username} to session ${sessionId}. Total players: ${session.players.length}`);
+
+            // TODO(human): Add test bot player here for testing multi-player display
+            // Add some fake guesses to TestBot to simulate a player with progress
+            // session.players.push({
+            //   userId: userId + "_testbot", // Different userId so they can have different progress
+            //   username: "TestBot",
+            //   avatarUrl: avatarUrl,
+            //   guessHistory: [
+            //     { correct: false, difficulty: null, words: [] }, // First mistake
+            //     { correct: true, difficulty: 0, words: [] },      // Yellow category solved
+            //     { correct: true, difficulty: 1, words: [] }       // Green category solved
+            //   ],
+            //   lastGuessCount: 3
+            // });
+
+            // Update the Discord message to show the new player
+            try {
+              const imageBuffer = await generateGameImage({
+                players: session.players,
+                puzzleNumber: session.puzzleNumber
+              });
+
+              const attachment = new AttachmentBuilder(imageBuffer, { name: "connections.png" });
+
+              const row = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                  .setCustomId(`launch_activity_${sessionId}`)
+                  .setLabel("Play")
+                  .setStyle(ButtonStyle.Primary)
+                  .setEmoji("🎮")
+              );
+
+              // Generate message text based on number of players
+              let messageText;
+              if (session.players.length === 1) {
+                messageText = `**${session.players[0].username}** is playing Connections #${session.puzzleNumber}`;
+              } else if (session.players.length === 2) {
+                messageText = `**${session.players[0].username}** and **${session.players[1].username}** are playing Connections #${session.puzzleNumber}`;
+              } else {
+                const names = session.players
+                  .slice(0, -1)
+                  .map((p) => `**${p.username}**`)
+                  .join(", ");
+                messageText = `${names}, and **${
+                  session.players[session.players.length - 1].username
+                }** are playing Connections #${session.puzzleNumber}`;
+              }
+
+              if (session.interaction) {
+                await session.interaction.editReply({
+                  content: messageText,
+                  files: [attachment],
+                  components: [row]
+                });
+                console.log(`✅ Message updated with new player!`);
+              }
+            } catch (updateError) {
+              console.error("Failed to update message:", updateError.message);
+            }
+          } else {
+            console.log(`♻️ ${username} rejoining session ${sessionId}`);
+          }
+        }
+
         // Use Discord's LAUNCH_ACTIVITY response type (type 12)
         // This launches the activity silently without announcements
         await client.rest.post(`/interactions/${interaction.id}/${interaction.token}/callback`, {

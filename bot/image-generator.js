@@ -1,19 +1,28 @@
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 
 /**
- * Generate a Connections game grid image
+ * Generate a Connections game grid image for multiple players
  * @param {Object} options - Image generation options
- * @param {Array} options.guessHistory - Array of guess objects
- * @param {Object} options.gameData - Game data with categories (for incorrect guesses)
- * @param {string} options.username - Player's username
- * @param {string} options.avatarUrl - Player's avatar URL
+ * @param {Array} options.players - Array of player objects: { username, avatarUrl, guessHistory }
  * @param {number} options.puzzleNumber - Puzzle number
  * @returns {Buffer} PNG image buffer
  */
-export async function generateGameImage({ guessHistory = [], gameData = null, username = "Player", avatarUrl = null, puzzleNumber = null }) {
-  // Canvas dimensions
-  const width = 500;
-  const height = 400;
+export async function generateGameImage({ players = [], puzzleNumber = null }) {
+  // If no players, show empty state
+  if (players.length === 0) {
+    return generateEmptyImage(puzzleNumber);
+  }
+
+  // Settings per player
+  const playerWidth = 280;
+  const playerSpacing = 40;
+  const headerHeight = 80;
+  const gridHeight = 320;
+
+  // Canvas dimensions based on number of players
+  const width = Math.max(600, players.length * playerWidth + (players.length - 1) * playerSpacing + 40);
+  const height = headerHeight + gridHeight;
+
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
 
@@ -21,15 +30,60 @@ export async function generateGameImage({ guessHistory = [], gameData = null, us
   ctx.fillStyle = "#1e1e1e";
   ctx.fillRect(0, 0, width, height);
 
-  // Draw avatar if available
+  // Draw each player's section
+  for (let i = 0; i < players.length; i++) {
+    const player = players[i];
+    const x = 20 + i * (playerWidth + playerSpacing);
+
+    await drawPlayerSection(ctx, player, x, headerHeight, playerWidth);
+  }
+
+  return canvas.toBuffer("image/png");
+}
+
+/**
+ * Generate empty image when no players have joined
+ */
+function generateEmptyImage(puzzleNumber) {
+  const width = 500;
+  const height = 300;
+  const canvas = createCanvas(width, height);
+  const ctx = canvas.getContext("2d");
+
+  // Background
+  ctx.fillStyle = "#1e1e1e";
+  ctx.fillRect(0, 0, width, height);
+
+  // Header
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 24px Arial";
+  const title = puzzleNumber ? `Connections #${puzzleNumber}` : "Connections";
+  ctx.fillText(title, 20, 40);
+
+  // Message
+  ctx.font = "18px Arial";
+  ctx.fillStyle = "#999999";
+  ctx.fillText("Waiting for players...", 20, 100);
+  ctx.font = "14px Arial";
+  ctx.fillText("Click 'Play' to join!", 20, 130);
+
+  return canvas.toBuffer("image/png");
+}
+
+/**
+ * Draw a single player's section (avatar, name, grid, stats)
+ */
+async function drawPlayerSection(ctx, player, x, y, width) {
+  const { username, avatarUrl, guessHistory = [] } = player;
+
+  // Draw avatar
   if (avatarUrl) {
     try {
-      console.log(`🖼️ Loading avatar from: ${avatarUrl}`);
+      console.log(`🖼️ Loading avatar for ${username}`);
       const avatar = await loadImage(avatarUrl);
-      console.log(`✅ Avatar loaded successfully (${avatar.width}x${avatar.height})`);
       const avatarSize = 60;
-      const avatarX = 20;
-      const avatarY = 20;
+      const avatarX = x + (width - avatarSize) / 2; // Center avatar
+      const avatarY = y - 70;
 
       // Create circular clipping path
       ctx.save();
@@ -41,85 +95,59 @@ export async function generateGameImage({ guessHistory = [], gameData = null, us
       // Draw the avatar
       ctx.drawImage(avatar, avatarX, avatarY, avatarSize, avatarSize);
       ctx.restore();
-      console.log(`🎨 Avatar drawn to canvas`);
+      console.log(`✅ Avatar loaded for ${username}`);
     } catch (error) {
-      console.error("❌ Failed to load avatar:", error.message);
+      console.error(`❌ Failed to load avatar for ${username}:`, error.message);
     }
-  } else {
-    console.log(`⚠️ No avatar URL provided`);
   }
 
-  // Header (positioned to the right of avatar)
+  // Draw username centered below avatar
   ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 20px Arial";
-  ctx.fillText(puzzleNumber ? `Connections #${puzzleNumber}` : "Connections", 100, 45);
-
-  // Player info
-  ctx.font = "16px Arial";
-  ctx.fillText(username, 100, 65);
+  ctx.font = "bold 14px Arial";
+  ctx.textAlign = "center";
+  ctx.fillText(username, x + width / 2, y - 10);
+  ctx.textAlign = "left"; // Reset alignment
 
   // Grid settings
-  const gridStartY = 100;
-  const cellSize = 40;
+  const cellSize = 42;
   const cellSpacing = 5;
-  const gridX = (width - (4 * cellSize + 3 * cellSpacing)) / 2;
+  const gridWidth = 4 * cellSize + 3 * cellSpacing;
+  const gridX = x + (width - gridWidth) / 2; // Center grid
+  let gridY = y + 10;
 
   // Color mapping for difficulties
   const colors = {
-    0: "#f9df6d", // Yellow (easiest)
+    0: "#f9df6d", // Yellow
     1: "#a0c35a", // Green
     2: "#b0c4ef", // Blue
-    3: "#ba81c5" // Purple (hardest)
+    3: "#ba81c5" // Purple
   };
 
-  const incorrectColor = "#5a5a5a"; // Gray for incorrect
+  const incorrectColor = "#5a5a5a"; // Gray
 
   // Draw guess grid
   guessHistory.forEach((guess, rowIndex) => {
-    const y = gridStartY + rowIndex * (cellSize + cellSpacing);
+    const rowY = gridY + rowIndex * (cellSize + cellSpacing);
 
     if (guess.correct && guess.difficulty !== null) {
       // Correct guess - show 4 squares of the same color
       const color = colors[guess.difficulty] || incorrectColor;
       for (let col = 0; col < 4; col++) {
-        const x = gridX + col * (cellSize + cellSpacing);
+        const cellX = gridX + col * (cellSize + cellSpacing);
         ctx.fillStyle = color;
-        ctx.fillRect(x, y, cellSize, cellSize);
+        ctx.fillRect(cellX, rowY, cellSize, cellSize);
       }
     } else {
-      // Incorrect guess - try to get word difficulties from game data
-      if (gameData && guess.words) {
-        guess.words.forEach((word, col) => {
-          const x = gridX + col * (cellSize + cellSpacing);
-          // Find which category this word belongs to
-          const category = gameData.categories?.find((cat) => cat.members.includes(word));
-          const color = category ? colors[category.difficulty] : incorrectColor;
-          ctx.fillStyle = color;
-          ctx.fillRect(x, y, cellSize, cellSize);
-        });
-      } else {
-        // Fallback - show gray squares
-        for (let col = 0; col < 4; col++) {
-          const x = gridX + col * (cellSize + cellSpacing);
-          ctx.fillStyle = incorrectColor;
-          ctx.fillRect(x, y, cellSize, cellSize);
-        }
+      // Incorrect guess - show gray squares
+      for (let col = 0; col < 4; col++) {
+        const cellX = gridX + col * (cellSize + cellSpacing);
+        ctx.fillStyle = incorrectColor;
+        ctx.fillRect(cellX, rowY, cellSize, cellSize);
       }
     }
   });
 
-  // Stats at the bottom
-  const correctGuesses = guessHistory.filter((g) => g.correct).length;
-  const totalGuesses = guessHistory.length;
-  const mistakes = guessHistory.filter((g) => !g.correct).length;
-
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "16px Arial";
-  const statsY = gridStartY + Math.min(guessHistory.length, 8) * (cellSize + cellSpacing) + 30;
-  ctx.fillText(`Score: ${correctGuesses}/4`, 20, statsY);
-  ctx.fillText(`Mistakes: ${mistakes}/4`, 200, statsY);
-
-  return canvas.toBuffer("image/png");
+  // Stats removed - just show the grid
 }
 
 /**
