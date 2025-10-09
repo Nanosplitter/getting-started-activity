@@ -1,4 +1,4 @@
-import { createCanvas } from "@napi-rs/canvas";
+import { createCanvas, loadImage } from "@napi-rs/canvas";
 
 /**
  * Generate a Connections game grid image
@@ -10,7 +10,7 @@ import { createCanvas } from "@napi-rs/canvas";
  * @param {number} options.puzzleNumber - Puzzle number
  * @returns {Buffer} PNG image buffer
  */
-export function generateGameImage({ guessHistory = [], gameData = null, username = "Player", avatarUrl = null, puzzleNumber = null }) {
+export async function generateGameImage({ guessHistory = [], gameData = null, username = "Player", avatarUrl = null, puzzleNumber = null }) {
   // Canvas dimensions
   const width = 500;
   const height = 400;
@@ -21,14 +21,42 @@ export function generateGameImage({ guessHistory = [], gameData = null, username
   ctx.fillStyle = "#1e1e1e";
   ctx.fillRect(0, 0, width, height);
 
-  // Header
+  // Draw avatar if available
+  if (avatarUrl) {
+    try {
+      console.log(`🖼️ Loading avatar from: ${avatarUrl}`);
+      const avatar = await loadImage(avatarUrl);
+      console.log(`✅ Avatar loaded successfully (${avatar.width}x${avatar.height})`);
+      const avatarSize = 60;
+      const avatarX = 20;
+      const avatarY = 20;
+
+      // Create circular clipping path
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+
+      // Draw the avatar
+      ctx.drawImage(avatar, avatarX, avatarY, avatarSize, avatarSize);
+      ctx.restore();
+      console.log(`🎨 Avatar drawn to canvas`);
+    } catch (error) {
+      console.error("❌ Failed to load avatar:", error.message);
+    }
+  } else {
+    console.log(`⚠️ No avatar URL provided`);
+  }
+
+  // Header (positioned to the right of avatar)
   ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 24px Arial";
-  ctx.fillText(puzzleNumber ? `Connections #${puzzleNumber}` : "Connections", 20, 40);
+  ctx.font = "bold 20px Arial";
+  ctx.fillText(puzzleNumber ? `Connections #${puzzleNumber}` : "Connections", 100, 45);
 
   // Player info
   ctx.font = "16px Arial";
-  ctx.fillText(username, 20, 70);
+  ctx.fillText(username, 100, 65);
 
   // Grid settings
   const gridStartY = 100;

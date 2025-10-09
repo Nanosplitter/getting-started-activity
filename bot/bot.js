@@ -288,8 +288,11 @@ async function startGameSession(interaction) {
       });
     }
 
-    // Generate initial image (empty state)
-    const imageBuffer = generateGameImage({
+    // Defer the reply immediately to avoid timeout (we have 15 minutes after deferring)
+    await interaction.deferReply();
+
+    // Generate initial image (empty state) - this may take a moment due to avatar loading
+    const imageBuffer = await generateGameImage({
       guessHistory: [],
       gameData: null,
       username: username,
@@ -308,8 +311,8 @@ async function startGameSession(interaction) {
         .setEmoji("🎮")
     );
 
-    // Reply directly to the interaction with the game message
-    await interaction.reply({
+    // Edit the deferred reply with the game message
+    await interaction.editReply({
       content: `**${username}** is playing Connections #${puzzleNumber}`,
       files: [attachment],
       components: [row]
@@ -363,12 +366,20 @@ async function startGameSession(interaction) {
     console.log(`✓ Started game session ${sessionId} for user ${username}`);
   } catch (error) {
     console.error("Error starting game session:", error);
-    // Try to reply if we haven't already
-    if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({
-        content: "Failed to start game session. Please try again.",
-        flags: 64 // EPHEMERAL flag
-      });
+    // Try to reply or edit if we haven't already replied
+    try {
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({
+          content: "Failed to start game session. Please try again.",
+          flags: 64 // EPHEMERAL flag
+        });
+      } else if (interaction.deferred) {
+        await interaction.editReply({
+          content: "Failed to start game session. Please try again."
+        });
+      }
+    } catch (replyError) {
+      console.error("Failed to send error message:", replyError.message);
     }
   }
 }
@@ -416,7 +427,7 @@ async function checkSessionUpdates() {
         // For user-installable apps, use the interaction to edit the reply
         // This works for 15 minutes after the interaction was created
         try {
-          const imageBuffer = generateGameImage({
+          const imageBuffer = await generateGameImage({
             guessHistory,
             gameData: null,
             username: session.username,
