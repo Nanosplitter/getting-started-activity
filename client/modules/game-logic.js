@@ -14,7 +14,7 @@ import {
   getGuessHistory
 } from "./game-state.js";
 import { getCurrentUser, getGuildId } from "./discord.js";
-import { fetchGameState, saveGameResult as apiSaveGameResult } from "./api.js";
+import { fetchGameState, saveGameResult as apiSaveGameResult, updateSession } from "./api.js";
 import { showMessage, wait } from "../utils/helpers.js";
 import { GAME_CONFIG } from "../config.js";
 
@@ -95,6 +95,16 @@ export function hasUserPlayed(serverGameState, userId) {
 }
 
 /**
+ * Update the session with current guess history
+ */
+async function updateSessionState() {
+  const gameState = getGameState();
+  if (gameState.sessionId) {
+    await updateSession(gameState.sessionId, getGuessHistory());
+  }
+}
+
+/**
  * Handle the submit button click
  */
 export async function handleSubmit() {
@@ -111,6 +121,9 @@ export async function handleSubmit() {
     clearSelection();
     showMessage("Correct! 🎉", "success");
 
+    // Update session with new guess
+    await updateSessionState();
+
     // Check if game is complete
     if (isGameWon()) {
       completeGame();
@@ -125,6 +138,9 @@ export async function handleSubmit() {
     recordGuess(gameState.selectedWords, false, null);
     incrementMistakes();
     clearSelection();
+
+    // Update session with new guess
+    await updateSessionState();
 
     // Check for "one away"
     if (isOneAway(gameState.selectedWords)) {

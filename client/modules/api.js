@@ -87,3 +87,35 @@ export async function deleteGameResult(guildId, date, userId) {
 
   return response.json();
 }
+
+/**
+ * Update game session with current guess history
+ * @param {string} sessionId - Session ID
+ * @param {Array} guessHistory - Array of guess objects
+ * @returns {Promise<Object>} - Server response
+ */
+export async function updateSession(sessionId, guessHistory) {
+  try {
+    console.log(`🔄 Updating session ${sessionId} with ${guessHistory.length} guesses`);
+    const response = await fetch(API_ENDPOINTS.sessionUpdate(sessionId), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ guessHistory })
+    });
+
+    if (!response.ok) {
+      console.error(`Session update failed with status ${response.status}`);
+      throw new Error("Failed to update session");
+    }
+
+    const result = await response.json();
+    console.log("✅ Session updated successfully:", result);
+    return result;
+  } catch (error) {
+    // Silently fail if session endpoint is not available
+    console.warn("⚠️ Session update failed:", error.message);
+    return null;
+  }
+}

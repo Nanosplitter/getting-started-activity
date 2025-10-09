@@ -20,9 +20,9 @@ export const GAME_CONFIG = {
 
 // Date configuration
 export const DATE_CONFIG = {
-  // Hardcoded for testing - uncomment the line below for production
-  // current: new Date().toISOString().split("T")[0],
-  current: "2025-10-02",
+  // Use current date
+  current: new Date().toISOString().split("T")[0],
+  // current: "2025-10-02", // Hardcoded for testing
   fallback: "2024-10-02"
 };
 
@@ -38,5 +38,6 @@ export const API_ENDPOINTS = {
   connections: (date) => `/api/connections/${date}`,
   gameState: (guildId, date) => `/api/gamestate/${guildId}/${date}`,
   completeGame: (guildId, date) => `/api/gamestate/${guildId}/${date}/complete`,
-  deleteGame: (guildId, date, userId) => `/api/gamestate/${guildId}/${date}/${userId}`
+  deleteGame: (guildId, date, userId) => `/api/gamestate/${guildId}/${date}/${userId}`,
+  sessionUpdate: (sessionId) => `/api/sessions/${sessionId}/update`
 };

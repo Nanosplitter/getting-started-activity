@@ -110,6 +110,10 @@ initializeDatabase();
 // Format: { guildId: { date: string, players: { userId: { username: string, score: number, mistakes: number, completedAt: timestamp } } } }
 const gameState = {};
 
+// Track active game sessions for live updates
+// Format: { sessionId: { guildId, channelId, userId, messageId, guessHistory, lastUpdate } }
+const activeSessions = {};
+
 app.post("/api/token", async (req, res) => {
   // Exchange the code for an access_token
   const response = await fetch(`https://discord.com/api/oauth2/token`, {
@@ -258,6 +262,88 @@ app.post("/api/gamestate/:guildId/:date/complete", async (req, res) => {
     console.error("Error saving game result:", error);
     res.status(500).json({ error: "Failed to save game result" });
   }
+});
+
+// Start a new game session for live updates
+app.post("/api/sessions/start", async (req, res) => {
+  const { sessionId, guildId, channelId, userId, messageId } = req.body;
+
+  console.log(`📝 Creating session: ${sessionId}`);
+
+  activeSessions[sessionId] = {
+    guildId,
+    channelId,
+    userId,
+    messageId,
+    guessHistory: [],
+    lastUpdate: Date.now()
+  };
+
+  console.log(`✅ Session created. Active sessions:`, Object.keys(activeSessions));
+
+  res.json({ success: true, session: activeSessions[sessionId] });
+});
+
+// Update a game session with new guess
+app.post("/api/sessions/:sessionId/update", async (req, res) => {
+  const { sessionId } = req.params;
+  const { guessHistory } = req.body;
+
+  console.log(`🔄 Update request for session: ${sessionId}, guesses: ${guessHistory?.length || 0}`);
+
+  if (!activeSessions[sessionId]) {
+    console.warn(`❌ Session not found: ${sessionId}`);
+    console.log(`Available sessions:`, Object.keys(activeSessions));
+    return res.status(404).json({ error: "Session not found" });
+  }
+
+  activeSessions[sessionId].guessHistory = guessHistory;
+  activeSessions[sessionId].lastUpdate = Date.now();
+
+  console.log(`✅ Session updated: ${sessionId}, total guesses: ${guessHistory.length}`);
+
+  res.json({ success: true, session: activeSessions[sessionId] });
+});
+
+// Get a game session
+app.get("/api/sessions/:sessionId", async (req, res) => {
+  const { sessionId } = req.params;
+
+  if (!activeSessions[sessionId]) {
+    return res.status(404).json({ error: "Session not found" });
+  }
+
+  res.json(activeSessions[sessionId]);
+});
+
+// Check and clear launch request
+app.post("/api/sessions/:sessionId/launch", async (req, res) => {
+  const { sessionId} = req.params;
+
+  if (!activeSessions[sessionId]) {
+    return res.json({ launchRequested: false });
+  }
+
+  const launchRequested = activeSessions[sessionId].launchRequested || false;
+
+  // Clear the flag after reading
+  if (launchRequested) {
+    activeSessions[sessionId].launchRequested = false;
+    console.log(`✅ Launch request cleared for session ${sessionId}`);
+  }
+
+  res.json({ launchRequested });
+});
+
+// End a game session
+app.delete("/api/sessions/:sessionId", async (req, res) => {
+  const { sessionId } = req.params;
+
+  if (activeSessions[sessionId]) {
+    delete activeSessions[sessionId];
+  }
+
+  res.json({ success: true });
 });
 
 // Delete player's game result (for dev/testing purposes)

@@ -12,7 +12,8 @@ let gameState = {
   mistakes: 0,
   maxMistakes: GAME_CONFIG.maxMistakes,
   isGameOver: false,
-  hasPlayed: false
+  hasPlayed: false,
+  sessionId: null // Session ID for live updates
 };
 
 // Game data (puzzle data from NYT API)
@@ -38,7 +39,8 @@ export function resetGameState() {
     mistakes: 0,
     maxMistakes: GAME_CONFIG.maxMistakes,
     isGameOver: false,
-    hasPlayed: false
+    hasPlayed: false,
+    sessionId: null
   };
 }
 

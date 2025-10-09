@@ -66,12 +66,23 @@ async function initializeGame() {
     const currentUser = getCurrentUser();
     console.log("Current user:", currentUser);
 
+    // Generate session ID from guild/channel/user for consistency
+    // This ensures the same session ID whether launched via /connections or /launch
+    const sessionId = `${guildId}_${currentUser.id}_${gameDate}`;
+
     if (hasUserPlayed(serverGameState, currentUser.id)) {
       updateGameState({
         hasPlayed: true,
-        isGameOver: true
+        isGameOver: true,
+        sessionId
+      });
+    } else {
+      updateGameState({
+        sessionId
       });
     }
+
+    console.log("Session ID:", sessionId);
 
     console.log("Rendering game...");
 

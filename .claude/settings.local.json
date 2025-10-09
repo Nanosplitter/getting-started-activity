@@ -2,9 +2,12 @@
   "permissions": {
     "allow": [
       "Bash(docker-compose:*)",
-      "Bash(docker-compose up:*)"
+      "Bash(docker-compose up:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run register:*)"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "outputStyle": "Learning"
 }
