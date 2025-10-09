@@ -301,15 +301,22 @@ function renderWordGrid() {
     displayWords = [...remainingWords].sort(() => Math.random() - 0.5); // Shuffle
   }
 
+  // Check which words are currently selected
+  const gameState = getGameState();
+  const selectedWords = gameState.selectedWords || [];
+
   html += `
     <div class="game-grid ${isDevMode ? "dev-mode" : ""}">
       ${displayWords
         .map(
-          (word) => `
-        <button class="word-button" data-word="${escapeHtml(word)}">
+          (word) => {
+            const isSelected = selectedWords.includes(word);
+            return `
+        <button class="word-button ${isSelected ? "selected" : ""}" data-word="${escapeHtml(word)}">
           ${escapeHtml(word)}
         </button>
-      `
+      `;
+          }
         )
         .join("")}
     </div>

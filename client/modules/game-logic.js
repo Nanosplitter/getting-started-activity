@@ -134,16 +134,18 @@ export async function handleSubmit() {
     await wait(1000);
     await refreshGame();
   } else {
-    // Wrong guess
+    // Wrong guess - keep selection so user can adjust
+    const guessedWords = [...gameState.selectedWords];
+
     recordGuess(gameState.selectedWords, false, null);
     incrementMistakes();
-    clearSelection();
+    // Don't clear selection - let them adjust their guess
 
     // Update session with new guess
     await updateSessionState();
 
-    // Check for "one away"
-    if (isOneAway(gameState.selectedWords)) {
+    // Check for "one away" using the saved words
+    if (isOneAway(guessedWords)) {
       showMessage("One away...", "info");
     } else {
       showMessage("Not quite. Try again!", "error");

@@ -281,11 +281,7 @@ async function startGameSession(interaction) {
     // We'll set the session ID after we get the message ID
     // For now, use a temporary ID in the button
     const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId(`launch_activity_temp`)
-        .setLabel("Play")
-        .setStyle(ButtonStyle.Primary)
-        .setEmoji("🎮")
+      new ButtonBuilder().setCustomId(`launch_activity_temp`).setLabel("Play now!").setStyle(ButtonStyle.Primary)
     );
 
     // Edit the deferred reply with the game message
@@ -308,9 +304,8 @@ async function startGameSession(interaction) {
     const updatedRow = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(`launch_activity_${sessionId}`)
-        .setLabel("Play")
+        .setLabel("Play now!")
         .setStyle(ButtonStyle.Primary)
-        .setEmoji("🎮")
     );
 
     await interaction.editReply({
@@ -445,9 +440,8 @@ async function checkSessionUpdates() {
           const row = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
               .setCustomId(`launch_activity_${sessionId}`)
-              .setLabel("Play")
+              .setLabel("Play now!")
               .setStyle(ButtonStyle.Primary)
-              .setEmoji("🎮")
           );
 
           // Generate message text based on number of players
