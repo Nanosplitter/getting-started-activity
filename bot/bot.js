@@ -578,9 +578,8 @@ client.on("interactionCreate", async (interaction) => {
               const row = new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
                   .setCustomId(`launch_activity_${sessionId}`)
-                  .setLabel("Play")
+                  .setLabel("Play now!")
                   .setStyle(ButtonStyle.Primary)
-                  .setEmoji("🎮")
               );
 
               // Generate message text based on number of players
