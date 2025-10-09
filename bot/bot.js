@@ -299,17 +299,6 @@ async function startGameSession(interaction) {
 
     const attachment = new AttachmentBuilder(imageBuffer, { name: "connections.png" });
 
-    // Create embed
-    const embed = new EmbedBuilder()
-      .setAuthor({
-        name: `${username} is playing Connections`,
-        iconURL: avatarUrl
-      })
-      .setImage("attachment://connections.png")
-      .setColor(0x5865f2)
-      .setFooter({ text: `Connections #${puzzleNumber}` })
-      .setTimestamp();
-
     // Create button to launch activity (custom ID so we can handle the click)
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
@@ -321,7 +310,7 @@ async function startGameSession(interaction) {
 
     // Reply directly to the interaction with the game message
     await interaction.reply({
-      embeds: [embed],
+      content: `**${username}** is playing Connections #${puzzleNumber}`,
       files: [attachment],
       components: [row]
     });
@@ -437,16 +426,6 @@ async function checkSessionUpdates() {
 
           const attachment = new AttachmentBuilder(imageBuffer, { name: "connections.png" });
 
-          const embed = new EmbedBuilder()
-            .setAuthor({
-              name: `${session.username} is playing Connections`,
-              iconURL: session.avatarUrl
-            })
-            .setImage("attachment://connections.png")
-            .setColor(0x5865f2)
-            .setFooter({ text: `Connections #${session.puzzleNumber}` })
-            .setTimestamp();
-
           // Create button to launch activity
           const row = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
@@ -459,7 +438,7 @@ async function checkSessionUpdates() {
           // Use the stored interaction to edit the reply
           if (session.interaction) {
             await session.interaction.editReply({
-              embeds: [embed],
+              content: `**${session.username}** is playing Connections #${session.puzzleNumber}`,
               files: [attachment],
               components: [row]
             });
