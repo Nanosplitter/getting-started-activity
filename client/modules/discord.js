@@ -33,13 +33,23 @@ export async function setupDiscordSdk() {
   console.log("Discord SDK is ready");
 
   // Authorize with Discord Client
-  const { code } = await discordSdk.commands.authorize({
-    client_id: DISCORD_CLIENT_ID,
-    response_type: "code",
-    state: "",
-    prompt: "none",
-    scope: ["identify", "guilds"]
-  });
+  console.log("Requesting authorization with client_id:", DISCORD_CLIENT_ID);
+  let authResult;
+  try {
+    authResult = await discordSdk.commands.authorize({
+      client_id: DISCORD_CLIENT_ID,
+      response_type: "code",
+      state: "",
+      prompt: "none",
+      scope: ["identify", "guilds"]
+    });
+  } catch (authError) {
+    console.error("Authorization failed:", authError);
+    throw new Error(`Discord authorization failed: ${authError.message}`);
+  }
+
+  const { code } = authResult;
+  console.log("Authorization code received:", code ? "YES" : "NO");
 
   // Retrieve an access_token from your activity's server
   let tokenData;

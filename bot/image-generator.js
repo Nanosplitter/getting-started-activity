@@ -13,13 +13,17 @@ export async function generateGameImage({ players = [], puzzleNumber = null }) {
     return generateEmptyImage(puzzleNumber);
   }
 
-  // Settings per player
+  // Single player: horizontal layout (like Wordle)
+  if (players.length === 1) {
+    return generateSinglePlayerImage(players[0], puzzleNumber);
+  }
+
+  // Multiple players: side-by-side columns
   const playerWidth = 280;
   const playerSpacing = 40;
   const headerHeight = 80;
   const gridHeight = 320;
 
-  // Canvas dimensions based on number of players
   const width = Math.max(600, players.length * playerWidth + (players.length - 1) * playerSpacing + 40);
   const height = headerHeight + gridHeight;
 
@@ -66,6 +70,84 @@ function generateEmptyImage(puzzleNumber) {
   ctx.fillText("Waiting for players...", 20, 100);
   ctx.font = "14px Arial";
   ctx.fillText("Click 'Play' to join!", 20, 130);
+
+  return canvas.toBuffer("image/png");
+}
+
+/**
+ * Generate single player image (horizontal layout like Wordle)
+ */
+async function generateSinglePlayerImage(player, puzzleNumber) {
+  const width = 500;
+  const height = 400; // Taller to fit all guesses
+  const canvas = createCanvas(width, height);
+  const ctx = canvas.getContext("2d");
+
+  // Background
+  ctx.fillStyle = "#1e1e1e";
+  ctx.fillRect(0, 0, width, height);
+
+  const { username, avatarUrl, guessHistory = [] } = player;
+
+  // Draw large circular avatar on the left
+  const avatarSize = 120;
+  const avatarX = 60;
+  const avatarY = height / 2 - avatarSize / 2; // Vertically centered
+
+  if (avatarUrl) {
+    try {
+      const avatar = await loadImage(avatarUrl);
+
+      // Create circular clipping path
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+
+      // Draw the avatar
+      ctx.drawImage(avatar, avatarX, avatarY, avatarSize, avatarSize);
+      ctx.restore();
+    } catch (error) {
+      console.error(`Failed to load avatar for ${username}:`, error.message);
+    }
+  }
+
+  // Draw grid on the right side
+  const cellSize = 40;
+  const cellSpacing = 5;
+  const gridWidth = 4 * cellSize + 3 * cellSpacing;
+  const gridX = avatarX + avatarSize + 60; // 60px spacing between avatar and grid
+  const gridStartY = 40; // Start higher to fit more rows
+
+  // Color mapping
+  const colors = {
+    0: "#f9df6d", // Yellow
+    1: "#a0c35a", // Green
+    2: "#b0c4ef", // Blue
+    3: "#ba81c5" // Purple
+  };
+  const incorrectColor = "#5a5a5a";
+
+  // Draw guess grid
+  guessHistory.forEach((guess, rowIndex) => {
+    const rowY = gridStartY + rowIndex * (cellSize + cellSpacing);
+
+    if (guess.correct && guess.difficulty !== null) {
+      const color = colors[guess.difficulty] || incorrectColor;
+      for (let col = 0; col < 4; col++) {
+        const cellX = gridX + col * (cellSize + cellSpacing);
+        ctx.fillStyle = color;
+        ctx.fillRect(cellX, rowY, cellSize, cellSize);
+      }
+    } else {
+      for (let col = 0; col < 4; col++) {
+        const cellX = gridX + col * (cellSize + cellSpacing);
+        ctx.fillStyle = incorrectColor;
+        ctx.fillRect(cellX, rowY, cellSize, cellSize);
+      }
+    }
+  });
 
   return canvas.toBuffer("image/png");
 }

@@ -110,9 +110,13 @@ initializeDatabase();
 // Format: { guildId: { date: string, players: { userId: { username: string, score: number, mistakes: number, completedAt: timestamp } } } }
 const gameState = {};
 
-// Track active game sessions for live updates
-// Format: { sessionId: { guildId, channelId, userId, messageId, guessHistory, lastUpdate } }
+// Track active game sessions for live updates (message-based sessions)
+// Format: { messageId: { guildId, channelId, messageId, players: { userId: { username, avatarUrl, guessHistory } }, lastUpdate } }
 const activeSessions = {};
+
+// Map user session IDs to message session IDs
+// Format: { "guildId_userId_date": "messageId" }
+const userToMessageSession = {};
 
 app.post("/api/token", async (req, res) => {
   // Exchange the code for an access_token
@@ -264,48 +268,100 @@ app.post("/api/gamestate/:guildId/:date/complete", async (req, res) => {
   }
 });
 
-// Start a new game session for live updates
+// Start a new game session for live updates (message-based)
 app.post("/api/sessions/start", async (req, res) => {
-  const { sessionId, guildId, channelId, userId, messageId } = req.body;
+  const { sessionId, guildId, channelId, messageId } = req.body;
 
-  console.log(`📝 Creating session: ${sessionId}`);
+  console.log(`📝 Creating message session: ${sessionId}`);
 
   activeSessions[sessionId] = {
     guildId,
     channelId,
-    userId,
-    messageId,
-    guessHistory: [],
+    messageId: sessionId, // sessionId IS the messageId
+    players: {}, // Will be populated as users join
     lastUpdate: Date.now()
   };
 
-  console.log(`✅ Session created. Active sessions:`, Object.keys(activeSessions));
+  console.log(`✅ Message session created. Active sessions:`, Object.keys(activeSessions));
 
   res.json({ success: true, session: activeSessions[sessionId] });
 });
 
-// Update a game session with new guess
-app.post("/api/sessions/:sessionId/update", async (req, res) => {
-  const { sessionId } = req.params;
-  const { guessHistory } = req.body;
+// Register a user joining a message session
+app.post("/api/sessions/:messageSessionId/join", async (req, res) => {
+  const { messageSessionId } = req.params;
+  const { userId, username, avatarUrl, guildId, date } = req.body;
 
-  console.log(`🔄 Update request for session: ${sessionId}, guesses: ${guessHistory?.length || 0}`);
+  console.log(`👤 User ${username} (${userId}) joining session ${messageSessionId}`);
 
-  if (!activeSessions[sessionId]) {
-    console.warn(`❌ Session not found: ${sessionId}`);
-    console.log(`Available sessions:`, Object.keys(activeSessions));
+  if (!activeSessions[messageSessionId]) {
+    console.warn(`❌ Message session not found: ${messageSessionId}`);
     return res.status(404).json({ error: "Session not found" });
   }
 
-  activeSessions[sessionId].guessHistory = guessHistory;
-  activeSessions[sessionId].lastUpdate = Date.now();
+  // Create user session ID format that client uses
+  const userSessionId = `${guildId}_${userId}_${date}`;
 
-  console.log(`✅ Session updated: ${sessionId}, total guesses: ${guessHistory.length}`);
+  // Map user session to message session
+  userToMessageSession[userSessionId] = messageSessionId;
 
-  res.json({ success: true, session: activeSessions[sessionId] });
+  // Add player to message session if not already there
+  if (!activeSessions[messageSessionId].players[userId]) {
+    activeSessions[messageSessionId].players[userId] = {
+      username,
+      avatarUrl,
+      guessHistory: []
+    };
+  }
+
+  console.log(`✅ User mapped: ${userSessionId} -> ${messageSessionId}`);
+  console.log(`   Total players in session: ${Object.keys(activeSessions[messageSessionId].players).length}`);
+
+  res.json({ success: true, userSessionId, messageSessionId });
 });
 
-// Get a game session
+// Update a game session with new guess (user reports progress)
+app.post("/api/sessions/:userSessionId/update", async (req, res) => {
+  const { userSessionId } = req.params;
+  const { guessHistory } = req.body;
+
+  console.log(`🔄 Update request for user session: ${userSessionId}, guesses: ${guessHistory?.length || 0}`);
+
+  // Look up the message session from user session
+  const messageSessionId = userToMessageSession[userSessionId];
+
+  if (!messageSessionId) {
+    console.warn(`❌ No message session mapped for user session: ${userSessionId}`);
+    console.log(`Available user mappings:`, Object.keys(userToMessageSession));
+    return res.status(404).json({ error: "User session not found" });
+  }
+
+  const messageSession = activeSessions[messageSessionId];
+
+  if (!messageSession) {
+    console.warn(`❌ Message session not found: ${messageSessionId}`);
+    return res.status(404).json({ error: "Message session not found" });
+  }
+
+  // Extract userId from userSessionId (format: guildId_userId_date)
+  const parts = userSessionId.split("_");
+  const userId = parts[1]; // Get userId from the middle
+
+  // Update the specific player's guess history
+  if (messageSession.players[userId]) {
+    messageSession.players[userId].guessHistory = guessHistory;
+    messageSession.lastUpdate = Date.now();
+
+    console.log(`✅ Player ${userId} updated in message session ${messageSessionId}, guesses: ${guessHistory.length}`);
+
+    res.json({ success: true, messageSessionId, userId });
+  } else {
+    console.warn(`⚠️ Player ${userId} not found in message session ${messageSessionId}`);
+    res.status(404).json({ error: "Player not in session" });
+  }
+});
+
+// Get a game session (returns message session with all players)
 app.get("/api/sessions/:sessionId", async (req, res) => {
   const { sessionId } = req.params;
 
@@ -313,6 +369,7 @@ app.get("/api/sessions/:sessionId", async (req, res) => {
     return res.status(404).json({ error: "Session not found" });
   }
 
+  // Return message session with players
   res.json(activeSessions[sessionId]);
 });
 

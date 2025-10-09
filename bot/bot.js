@@ -403,28 +403,45 @@ async function checkSessionUpdates() {
         continue;
       }
 
-      const guessHistory = serverSession.guessHistory || [];
+      // Server now returns players object: { userId: { username, avatarUrl, guessHistory } }
+      const serverPlayers = serverSession.players || {};
 
-      console.log(`📊 Session ${sessionId}: ${guessHistory.length} guesses (last count: ${session.lastGuessCount})`);
+      console.log(`📊 Session ${sessionId}: ${Object.keys(serverPlayers).length} player(s)`);
 
-      // Check if there are new guesses
-      if (guessHistory.length > session.lastGuessCount) {
-        console.log(`🎮 New guesses detected! Updating Discord message...`);
+      // Check if any player has new guesses
+      let hasUpdates = false;
 
-        // For user-installable apps, use the interaction to edit the reply
-        // This works for 15 minutes after the interaction was created
+      for (const userId in serverPlayers) {
+        const serverPlayer = serverPlayers[userId];
+        const localPlayer = session.players.find((p) => p.userId === userId);
+
+        if (localPlayer) {
+          const serverGuessCount = serverPlayer.guessHistory?.length || 0;
+          const localGuessCount = localPlayer.lastGuessCount || 0;
+
+          if (serverGuessCount > localGuessCount) {
+            console.log(
+              `🎮 Player ${serverPlayer.username} has new guesses: ${localGuessCount} -> ${serverGuessCount}`
+            );
+            localPlayer.guessHistory = serverPlayer.guessHistory;
+            localPlayer.lastGuessCount = serverGuessCount;
+            hasUpdates = true;
+          }
+        }
+      }
+
+      // Update Discord message if there are changes
+      if (hasUpdates) {
+        console.log(`📤 Updating Discord message with new progress...`);
+
         try {
           const imageBuffer = await generateGameImage({
-            guessHistory,
-            gameData: null,
-            username: session.username,
-            avatarUrl: session.avatarUrl,
+            players: session.players,
             puzzleNumber: session.puzzleNumber
           });
 
           const attachment = new AttachmentBuilder(imageBuffer, { name: "connections.png" });
 
-          // Create button to launch activity
           const row = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
               .setCustomId(`launch_activity_${sessionId}`)
@@ -433,10 +450,25 @@ async function checkSessionUpdates() {
               .setEmoji("🎮")
           );
 
-          // Use the stored interaction to edit the reply
+          // Generate message text based on number of players
+          let messageText;
+          if (session.players.length === 1) {
+            messageText = `**${session.players[0].username}** is playing Connections #${session.puzzleNumber}`;
+          } else if (session.players.length === 2) {
+            messageText = `**${session.players[0].username}** and **${session.players[1].username}** are playing Connections #${session.puzzleNumber}`;
+          } else {
+            const names = session.players
+              .slice(0, -1)
+              .map((p) => `**${p.username}**`)
+              .join(", ");
+            messageText = `${names}, and **${
+              session.players[session.players.length - 1].username
+            }** are playing Connections #${session.puzzleNumber}`;
+          }
+
           if (session.interaction) {
             await session.interaction.editReply({
-              content: `**${session.username}** is playing Connections #${session.puzzleNumber}`,
+              content: messageText,
               files: [attachment],
               components: [row]
             });
@@ -445,17 +477,17 @@ async function checkSessionUpdates() {
             console.warn(`⚠️ No interaction stored, cannot update message`);
           }
 
-          // Update last guess count
-          session.lastGuessCount = guessHistory.length;
+          // Check if all players are complete (4 correct or 4 mistakes)
+          const allComplete = session.players.every((player) => {
+            const guesses = player.guessHistory || [];
+            const correctCount = guesses.filter((g) => g.correct).length;
+            const mistakeCount = guesses.filter((g) => !g.correct).length;
+            return correctCount === 4 || mistakeCount >= 4;
+          });
 
-          // Check if game is complete (4 correct or 4 mistakes)
-          const correctCount = guessHistory.filter((g) => g.correct).length;
-          const mistakeCount = guessHistory.filter((g) => !g.correct).length;
-
-          if (correctCount === 4 || mistakeCount >= 4) {
-            // Game is complete, remove from active sessions
+          if (allComplete && session.players.length > 0) {
             activeSessions.delete(sessionId);
-            console.log(`✓ Game session ${sessionId} completed`);
+            console.log(`✓ Game session ${sessionId} completed - all players done`);
           }
         } catch (editError) {
           console.error(`❌ Failed to edit message:`, editError.message);
@@ -509,19 +541,30 @@ client.on("interactionCreate", async (interaction) => {
 
             console.log(`➕ Added ${username} to session ${sessionId}. Total players: ${session.players.length}`);
 
-            // TODO(human): Add test bot player here for testing multi-player display
-            // Add some fake guesses to TestBot to simulate a player with progress
-            // session.players.push({
-            //   userId: userId + "_testbot", // Different userId so they can have different progress
-            //   username: "TestBot",
-            //   avatarUrl: avatarUrl,
-            //   guessHistory: [
-            //     { correct: false, difficulty: null, words: [] }, // First mistake
-            //     { correct: true, difficulty: 0, words: [] },      // Yellow category solved
-            //     { correct: true, difficulty: 1, words: [] }       // Green category solved
-            //   ],
-            //   lastGuessCount: 3
-            // });
+            // Notify server about the player joining
+            try {
+              const gameDate = getTodayDate();
+              const response = await fetch(`http://localhost:3001/api/sessions/${sessionId}/join`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  userId,
+                  username,
+                  avatarUrl,
+                  guildId: session.guildId,
+                  date: gameDate
+                })
+              });
+
+              if (response.ok) {
+                const data = await response.json();
+                console.log(`✅ Server notified of player join: ${data.userSessionId} -> ${data.messageSessionId}`);
+              } else {
+                console.warn(`⚠️ Failed to notify server of player join: ${response.status}`);
+              }
+            } catch (error) {
+              console.error("Failed to notify server about player join:", error.message);
+            }
 
             // Update the Discord message to show the new player
             try {
