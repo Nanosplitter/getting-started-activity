@@ -690,8 +690,43 @@ client.on("interactionCreate", async (interaction) => {
         // Extract session ID from the button's custom ID
         const sessionId = interaction.customId.replace("launch_activity_", "");
 
-        // Find the session
-        const session = activeSessions.get(sessionId);
+        // Find the session in local cache
+        let session = activeSessions.get(sessionId);
+
+        // If not in cache, try to fetch from server (bot may have restarted)
+        if (!session) {
+          console.log(`⚠️ Session ${sessionId} not in cache, fetching from server...`);
+          try {
+            const response = await fetch(`http://localhost:3001/api/sessions/${sessionId}`);
+            if (response.ok) {
+              const serverSession = await response.json();
+
+              // Reconstruct session in bot's cache
+              session = {
+                sessionId,
+                channelId: serverSession.channelId,
+                messageId: sessionId,
+                guildId: serverSession.guildId,
+                puzzleNumber: getPuzzleNumber(),
+                players: Object.entries(serverSession.players || {}).map(([userId, player]) => ({
+                  userId,
+                  username: player.username,
+                  avatarUrl: player.avatarUrl,
+                  guessHistory: player.guessHistory || [],
+                  lastGuessCount: player.guessHistory?.length || 0
+                })),
+                interaction: null // No interaction token after restart
+              };
+
+              activeSessions.set(sessionId, session);
+              console.log(`✅ Session ${sessionId} restored from server`);
+            } else {
+              console.warn(`❌ Session ${sessionId} not found on server (${response.status})`);
+            }
+          } catch (fetchError) {
+            console.error(`Failed to fetch session from server:`, fetchError.message);
+          }
+        }
 
         if (session) {
           const userId = interaction.user.id;

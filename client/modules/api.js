@@ -119,3 +119,24 @@ export async function updateSession(sessionId, guessHistory) {
     return null;
   }
 }
+
+/**
+ * Look up user's active session in a channel
+ * @param {string} channelId - Discord channel ID
+ * @param {string} userId - Discord user ID
+ * @returns {Promise<Object>} - Session lookup result
+ */
+export async function lookupUserSession(channelId, userId) {
+  try {
+    const response = await fetch(`/api/sessions/lookup/${channelId}/${userId}`);
+
+    if (!response.ok) {
+      throw new Error(`Session lookup failed with status ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.warn("⚠️ Session lookup failed:", error.message);
+    return { found: false };
+  }
+}

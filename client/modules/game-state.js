@@ -181,3 +181,44 @@ export function getRemainingWords() {
 
   return remaining;
 }
+
+/**
+ * Restore game state from guess history
+ * @param {Array} guessHistory - Array of guess objects to restore from
+ */
+export function restoreFromGuessHistory(guessHistory) {
+  console.log(`🔄 Restoring game state from ${guessHistory.length} guesses`);
+
+  // Reset state first
+  gameState.solvedCategories = [];
+  gameState.mistakes = 0;
+  gameState.guessHistory = [];
+  gameState.selectedWords = [];
+
+  // Replay each guess
+  guessHistory.forEach((guess) => {
+    if (guess.correct) {
+      // Find the category for this correct guess
+      const category = gameData.categories.find((cat) =>
+        cat.members.every((member) => guess.words.includes(member))
+      );
+
+      if (category) {
+        gameState.solvedCategories.push(category);
+      }
+    } else {
+      // Incorrect guess - increment mistakes
+      gameState.mistakes++;
+    }
+
+    // Add to guess history
+    gameState.guessHistory.push(guess);
+  });
+
+  // Check if game is over
+  if (gameState.solvedCategories.length === 4 || gameState.mistakes >= gameState.maxMistakes) {
+    gameState.isGameOver = true;
+  }
+
+  console.log(`✅ Restored: ${gameState.solvedCategories.length} solved, ${gameState.mistakes} mistakes`);
+}

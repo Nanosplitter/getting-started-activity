@@ -361,6 +361,33 @@ app.post("/api/sessions/:userSessionId/update", async (req, res) => {
   }
 });
 
+// Look up user's active session by channelId and userId
+app.get("/api/sessions/lookup/:channelId/:userId", async (req, res) => {
+  const { channelId, userId } = req.params;
+
+  console.log(`🔍 Looking up active session for user ${userId} in channel ${channelId}`);
+
+  // Find any active session in this channel that contains this user
+  for (const [sessionId, session] of Object.entries(activeSessions)) {
+    if (session.channelId === channelId && session.players[userId]) {
+      console.log(`✅ Found active session ${sessionId} for user ${userId}`);
+
+      // Return session info and user's progress
+      const userProgress = session.players[userId];
+      return res.json({
+        found: true,
+        sessionId,
+        messageSessionId: sessionId,
+        guessHistory: userProgress.guessHistory || [],
+        session
+      });
+    }
+  }
+
+  console.log(`❌ No active session found for user ${userId} in channel ${channelId}`);
+  res.json({ found: false });
+});
+
 // Get a game session (returns message session with all players)
 app.get("/api/sessions/:sessionId", async (req, res) => {
   const { sessionId } = req.params;

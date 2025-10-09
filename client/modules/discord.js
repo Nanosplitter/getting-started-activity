@@ -112,3 +112,19 @@ export function getDiscordSdk() {
 export function getGuildId() {
   return discordSdk?.guildId || "default";
 }
+
+/**
+ * Get the channel ID (or default for local mode)
+ * @returns {string} - Channel ID
+ */
+export function getChannelId() {
+  return discordSdk?.channelId || "default";
+}
+
+/**
+ * Get the instance ID if available
+ * @returns {string|null} - Instance ID or null
+ */
+export function getInstanceId() {
+  return discordSdk?.instanceId || null;
+}

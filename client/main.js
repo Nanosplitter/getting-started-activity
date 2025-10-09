@@ -15,9 +15,9 @@
 
 import "./style.css";
 import { isLocalMode, DATE_CONFIG } from "./config.js";
-import { setupDiscordSdk, getCurrentUser, getGuildId } from "./modules/discord.js";
-import { fetchGameData, fetchGameState } from "./modules/api.js";
-import { setGameData, setCurrentDate, updateGameState } from "./modules/game-state.js";
+import { setupDiscordSdk, getCurrentUser, getGuildId, getChannelId } from "./modules/discord.js";
+import { fetchGameData, fetchGameState, lookupUserSession } from "./modules/api.js";
+import { setGameData, setCurrentDate, updateGameState, restoreFromGuessHistory } from "./modules/game-state.js";
 import { hasUserPlayed } from "./modules/game-logic.js";
 import { renderGame } from "./modules/renderer.js";
 
@@ -58,28 +58,46 @@ async function initializeGame() {
 
     // Fetch game state for this guild
     const guildId = getGuildId();
+    const channelId = getChannelId();
+    const currentUser = getCurrentUser();
     const serverGameState = await fetchGameState(guildId, gameDate);
 
     console.log("Server game state:", serverGameState);
-
-    // Check if current user has already played
-    const currentUser = getCurrentUser();
     console.log("Current user:", currentUser);
 
-    // Generate session ID from guild/channel/user for consistency
-    // This ensures the same session ID whether launched via /connections or /launch
+    // Look up if this user has an active session in this channel
+    const sessionLookup = await lookupUserSession(channelId, currentUser.id);
+
+    // Always use userSessionId format for updates (server maps to messageSessionId internally)
     const sessionId = `${guildId}_${currentUser.id}_${gameDate}`;
 
-    if (hasUserPlayed(serverGameState, currentUser.id)) {
-      updateGameState({
-        hasPlayed: true,
-        isGameOver: true,
-        sessionId
-      });
+    if (sessionLookup.found) {
+      // User has an existing session - restore their progress
+      console.log("✅ Found existing session:", sessionLookup.messageSessionId);
+
+      // Restore progress from guess history
+      if (sessionLookup.guessHistory && sessionLookup.guessHistory.length > 0) {
+        restoreFromGuessHistory(sessionLookup.guessHistory);
+        console.log(`🔄 Restored ${sessionLookup.guessHistory.length} guesses from server`);
+      }
+
+      // Update game state with userSessionId
+      updateGameState({ sessionId });
     } else {
-      updateGameState({
-        sessionId
-      });
+      // No active session found - check if user has completed this game before
+      console.log("❌ No active session found, checking completion status");
+
+      if (hasUserPlayed(serverGameState, currentUser.id)) {
+        updateGameState({
+          hasPlayed: true,
+          isGameOver: true,
+          sessionId
+        });
+      } else {
+        updateGameState({
+          sessionId
+        });
+      }
     }
 
     console.log("Session ID:", sessionId);
