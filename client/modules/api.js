@@ -18,13 +18,24 @@ export async function fetchGameData(date) {
 
   const data = await response.json();
 
-  // Transform NYT format to our internal format
   if (data.categories) {
-    data.categories = data.categories.map((cat, index) => ({
-      group: cat.title,
-      members: cat.cards.map((card) => card.content),
-      difficulty: index // 0=Yellow, 1=Green, 2=Blue, 3=Purple
-    }));
+    const allCards = [];
+
+    data.categories = data.categories.map((cat, index) => {
+      const members = cat.cards.map((card) => {
+        allCards.push({ content: card.content, position: card.position });
+        return card.content;
+      });
+
+      return {
+        group: cat.title,
+        members,
+        difficulty: index
+      };
+    });
+
+    allCards.sort((a, b) => a.position - b.position);
+    data.startingOrder = allCards.map(card => card.content);
   }
 
   return data;

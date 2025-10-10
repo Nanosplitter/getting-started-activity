@@ -8,7 +8,9 @@ import {
   getRemainingWords,
   toggleWordSelection,
   clearSelection,
-  getCurrentDate
+  getCurrentDate,
+  getDisplayOrder,
+  setDisplayOrder
 } from "./game-state.js";
 import { handleSubmit, handleShuffle } from "./game-logic.js";
 import { getCurrentUser, getDiscordSdk } from "./discord.js";
@@ -286,16 +288,19 @@ function renderSolvedCategories() {
  */
 function renderWordGrid() {
   const remainingWords = getRemainingWords();
-
-  // In dev mode, keep words in category order for easier development
-  // In normal mode, shuffle for gameplay
+  const remainingSet = new Set(remainingWords);
   let displayWords;
   let html = "";
 
   if (isDevMode) {
-    displayWords = remainingWords; // Keep in category order
+    displayWords = remainingWords;
   } else {
-    displayWords = [...remainingWords].sort(() => Math.random() - 0.5); // Shuffle
+    let displayOrder = getDisplayOrder();
+    if (displayOrder) {
+      displayWords = displayOrder.filter(word => remainingSet.has(word));
+    } else {
+      displayWords = remainingWords;
+    }
   }
 
   // Check which words are currently selected

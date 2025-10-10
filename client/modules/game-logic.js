@@ -11,7 +11,8 @@ import {
   completeGame,
   clearSelection,
   recordGuess,
-  getGuessHistory
+  getGuessHistory,
+  shuffleDisplayOrder
 } from "./game-state.js";
 import { getCurrentUser, getGuildId } from "./discord.js";
 import { fetchGameState, saveGameResult as apiSaveGameResult, updateSession } from "./api.js";
@@ -168,11 +169,9 @@ export async function handleSubmit() {
   }
 }
 
-/**
- * Handle the shuffle button click
- */
 export async function handleShuffle() {
   clearSelection();
+  shuffleDisplayOrder();
   await refreshGame();
 }
 

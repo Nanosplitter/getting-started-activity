@@ -8,12 +8,13 @@ import { GAME_CONFIG } from "../config.js";
 let gameState = {
   selectedWords: [],
   solvedCategories: [],
-  guessHistory: [], // Array of guess attempts with category colors
+  guessHistory: [],
   mistakes: 0,
   maxMistakes: GAME_CONFIG.maxMistakes,
   isGameOver: false,
   hasPlayed: false,
-  sessionId: null // Session ID for live updates
+  sessionId: null,
+  displayOrder: null
 };
 
 // Game data (puzzle data from NYT API)
@@ -40,7 +41,8 @@ export function resetGameState() {
     maxMistakes: GAME_CONFIG.maxMistakes,
     isGameOver: false,
     hasPlayed: false,
-    sessionId: null
+    sessionId: null,
+    displayOrder: null
   };
 }
 
@@ -221,4 +223,17 @@ export function restoreFromGuessHistory(guessHistory) {
   }
 
   console.log(`✅ Restored: ${gameState.solvedCategories.length} solved, ${gameState.mistakes} mistakes`);
+}
+
+export function getDisplayOrder() {
+  return gameState.displayOrder;
+}
+
+export function setDisplayOrder(order) {
+  gameState.displayOrder = order;
+}
+
+export function shuffleDisplayOrder() {
+  const remaining = getRemainingWords();
+  gameState.displayOrder = [...remaining].sort(() => Math.random() - 0.5);
 }

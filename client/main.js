@@ -17,7 +17,7 @@ import "./style.css";
 import { isLocalMode, DATE_CONFIG } from "./config.js";
 import { setupDiscordSdk, getCurrentUser, getGuildId, getChannelId } from "./modules/discord.js";
 import { fetchGameData, fetchGameState, lookupUserSession } from "./modules/api.js";
-import { setGameData, setCurrentDate, updateGameState, restoreFromGuessHistory } from "./modules/game-state.js";
+import { setGameData, setCurrentDate, updateGameState, restoreFromGuessHistory, setDisplayOrder } from "./modules/game-state.js";
 import { hasUserPlayed } from "./modules/game-logic.js";
 import { renderGame } from "./modules/renderer.js";
 
@@ -52,9 +52,13 @@ async function initializeGame() {
     console.log("Game data received:", gameData);
     console.log("Categories:", gameData.categories);
 
-    // Store game data and date
     setGameData(gameData);
     setCurrentDate(gameDate);
+
+    if (gameData.startingOrder) {
+      setDisplayOrder(gameData.startingOrder);
+      console.log("Initial display order set from API positions");
+    }
 
     // Fetch game state for this guild
     const guildId = getGuildId();
