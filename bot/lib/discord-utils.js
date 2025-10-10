@@ -10,17 +10,19 @@ export function createPlayButton(sessionId) {
   );
 }
 
-export function formatPlayerMessage(players, puzzleNumber) {
+export function formatPlayerMessage(players, puzzleNumber, isComplete = false) {
+  const verb = isComplete ? (players.length === 1 ? "was playing" : "were playing") : (players.length === 1 ? "is playing" : "are playing");
+
   if (players.length === 1) {
-    return `**${players[0].username}** is playing Connections #${puzzleNumber}`;
+    return `**${players[0].username}** ${verb} Connections #${puzzleNumber}`;
   } else if (players.length === 2) {
-    return `**${players[0].username}** and **${players[1].username}** are playing Connections #${puzzleNumber}`;
+    return `**${players[0].username}** and **${players[1].username}** ${verb} Connections #${puzzleNumber}`;
   } else {
     const names = players
       .slice(0, -1)
       .map((p) => `**${p.username}**`)
       .join(", ");
-    return `${names}, and **${players[players.length - 1].username}** are playing Connections #${puzzleNumber}`;
+    return `${names}, and **${players[players.length - 1].username}** ${verb} Connections #${puzzleNumber}`;
   }
 }
 

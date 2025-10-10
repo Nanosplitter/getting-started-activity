@@ -53,18 +53,19 @@ export async function checkSessionUpdates(client, activeSessions) {
         console.log(`📤 Updating Discord message with new progress...`);
 
         try {
-          const attachment = await createGameAttachment(session.players, session.puzzleNumber);
-          const button = createPlayButton(sessionId);
-          const messageText = formatPlayerMessage(session.players, session.puzzleNumber);
-          await updateSessionMessage(client, session, attachment, messageText, button);
-          console.log(`✅ Message updated!`);
-
+          // Check if all players are complete
           const allComplete = session.players.every((player) => {
             const guesses = player.guessHistory || [];
             const correctCount = guesses.filter((g) => g.correct).length;
             const mistakeCount = guesses.filter((g) => !g.correct).length;
             return correctCount === 4 || mistakeCount >= 4;
           });
+
+          const attachment = await createGameAttachment(session.players, session.puzzleNumber);
+          const button = createPlayButton(sessionId);
+          const messageText = formatPlayerMessage(session.players, session.puzzleNumber, allComplete);
+          await updateSessionMessage(client, session, attachment, messageText, button);
+          console.log(`✅ Message updated!`);
 
           if (allComplete && session.players.length > 0) {
             activeSessions.delete(sessionId);
