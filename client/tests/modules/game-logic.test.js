@@ -42,10 +42,8 @@ describe("game-logic", () => {
     });
 
     it("should ignore already solved categories", () => {
-      // Solve FRUITS category
       addSolvedCategory(mockGameData.categories[0]);
 
-      // Try to match FRUITS again
       const result = checkCategoryMatch(["APPLE", "ORANGE", "BANANA", "GRAPE"]);
 
       expect(result).toBeUndefined();
@@ -96,10 +94,8 @@ describe("game-logic", () => {
     });
 
     it("should ignore already solved categories", () => {
-      // Solve FRUITS category
       addSolvedCategory(mockGameData.categories[0]);
 
-      // Try one-away check for FRUITS
       const result = isOneAway(["APPLE", "ORANGE", "BANANA", "RED"]);
 
       expect(result).toBe(false);

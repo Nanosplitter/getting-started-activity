@@ -64,12 +64,10 @@ client.on("interactionCreate", async (interaction) => {
           const guildId = session.guildId || "dm";
           const today = getTodayDate();
 
-          // Check if player has already completed a game today
           const hasCompleted = await hasPlayerCompletedGame(guildId, userId, today);
           if (hasCompleted) {
             console.log(`✅ ${username} has already completed today's game - launching activity to view results`);
-            // Just launch the activity so they can see their completed game
-            // Don't create a new session or message
+
             await launchActivity(client, interaction);
             console.log(`🚀 Activity launched for ${username} (view only - already completed)`);
             return;

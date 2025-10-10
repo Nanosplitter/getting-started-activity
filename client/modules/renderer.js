@@ -30,7 +30,6 @@ export function renderGame(serverGameState) {
 
   let html = `<h1>Connections</h1>`;
 
-  // Show dev mode indicator
   if (isDevMode) {
     const modeText = isLocalMode ? "Local Development Mode" : "Dev Mode (Discord SDK Active)";
     html += `
@@ -40,10 +39,8 @@ export function renderGame(serverGameState) {
     `;
   }
 
-  // Show completed players
   html += renderCompletedPlayers(serverGameState);
 
-  // Show appropriate game state
   if (gameState.hasPlayed) {
     html += renderAlreadyPlayed(serverGameState, currentUser);
   } else if (gameState.isGameOver) {
@@ -54,12 +51,10 @@ export function renderGame(serverGameState) {
 
   app.innerHTML = html;
 
-  // Attach event listeners if game is active
   if (!gameState.isGameOver && !gameState.hasPlayed) {
     attachEventListeners();
   }
 
-  // Attach delete button listener if in dev mode and game is finished
   if (isDevMode && (gameState.isGameOver || gameState.hasPlayed)) {
     attachDeleteListener();
   }
@@ -106,13 +101,11 @@ function renderCompletedPlayers(serverGameState) {
  * @returns {string} - HTML string
  */
 function renderPlayerAvatar(player, userId) {
-  // Discord CDN avatar URL
   if (player.avatar) {
     const avatarUrl = `https://cdn.discordapp.com/avatars/${userId}/${player.avatar}.png?size=128`;
     return `<img src="${avatarUrl}" alt="${escapeHtml(player.username)}" class="player-avatar" />`;
   }
 
-  // Fallback to initials if no avatar
   const initials = player.username.substring(0, 2).toUpperCase();
   return `<div class="player-avatar-fallback">${initials}</div>`;
 }
@@ -157,15 +150,13 @@ function renderGuessGrid(guessHistory) {
       ${guessHistory
         .map((guess) => {
           if (guess.correct && guess.difficulty !== null) {
-            // Correct guess - show 4 squares of the same color
             const color = colors[guess.difficulty] || incorrectColor;
             return `
               <div class="guess-row">
-                ${Array(4).fill(`<div class="guess-square" style="background-color: ${color}"></div>`).join('')}
+                ${Array(4).fill(`<div class="guess-square" style="background-color: ${color}"></div>`).join("")}
               </div>
             `;
           } else {
-            // Incorrect guess - show the actual colors of the words guessed
             const squares = guess.words.map((word) => {
               const difficulty = getWordDifficulty(word);
               const color = difficulty !== null ? colors[difficulty] : incorrectColor;
@@ -186,7 +177,7 @@ function renderGuessGrid(guessHistory) {
  */
 function renderCategoriesWithState(categoriesToRender) {
   let html = `<div class="solved-categories">`;
-  categoriesToRender.forEach(category => {
+  categoriesToRender.forEach((category) => {
     const colorClass = CATEGORY_COLORS[category.difficulty] || "yellow";
     const opacity = category.solved ? "" : " unsolved";
     html += `
@@ -212,17 +203,17 @@ function renderCompletedCategories(guessHistory) {
     return "";
   }
 
-  const correctGuesses = guessHistory.filter(g => g.correct);
+  const correctGuesses = guessHistory.filter((g) => g.correct);
   const solvedGroups = new Set(
-    correctGuesses.map(guess => {
-      const category = gameData.categories.find(cat =>
-        cat.members.every(member => guess.words.includes(member))
-      );
-      return category?.group;
-    }).filter(Boolean)
+    correctGuesses
+      .map((guess) => {
+        const category = gameData.categories.find((cat) => cat.members.every((member) => guess.words.includes(member)));
+        return category?.group;
+      })
+      .filter(Boolean)
   );
 
-  const allCategories = gameData.categories.map(cat => ({
+  const allCategories = gameData.categories.map((cat) => ({
     ...cat,
     solved: solvedGroups.has(cat.group)
   }));
@@ -272,10 +263,10 @@ function renderFinalCategories() {
     return "";
   }
 
-  const solvedGroups = new Set(gameState.solvedCategories.map(cat => cat.group));
+  const solvedGroups = new Set(gameState.solvedCategories.map((cat) => cat.group));
   const allCategories = [
-    ...gameState.solvedCategories.map(cat => ({ ...cat, solved: true })),
-    ...gameData.categories.filter(cat => !solvedGroups.has(cat.group)).map(cat => ({ ...cat, solved: false }))
+    ...gameState.solvedCategories.map((cat) => ({ ...cat, solved: true })),
+    ...gameData.categories.filter((cat) => !solvedGroups.has(cat.group)).map((cat) => ({ ...cat, solved: false }))
   ];
 
   return renderCategoriesWithState(allCategories);
@@ -324,16 +315,9 @@ function renderGameBoard() {
     </div>
   `;
 
-  // Show solved categories
   html += renderSolvedCategories();
-
-  // Message area
   html += `<div id="message"></div>`;
-
-  // Word grid
   html += renderWordGrid();
-
-  // Controls
   html += renderControls();
 
   return html;
@@ -381,13 +365,12 @@ function renderWordGrid() {
   } else {
     let displayOrder = getDisplayOrder();
     if (displayOrder) {
-      displayWords = displayOrder.filter(word => remainingSet.has(word));
+      displayWords = displayOrder.filter((word) => remainingSet.has(word));
     } else {
       displayWords = remainingWords;
     }
   }
 
-  // Check which words are currently selected
   const gameState = getGameState();
   const selectedWords = gameState.selectedWords || [];
 
@@ -427,7 +410,6 @@ function renderControls() {
  * Attach event listeners to interactive elements
  */
 function attachEventListeners() {
-  // Word buttons
   document.querySelectorAll(".word-button").forEach((button) => {
     button.addEventListener("click", () => {
       const word = button.dataset.word;
@@ -443,10 +425,8 @@ function attachEventListeners() {
     });
   });
 
-  // Shuffle button
   document.getElementById("shuffle")?.addEventListener("click", handleShuffle);
 
-  // Deselect button
   document.getElementById("deselect")?.addEventListener("click", () => {
     clearSelection();
     document.querySelectorAll(".word-button").forEach((btn) => {
@@ -455,7 +435,6 @@ function attachEventListeners() {
     updateSubmitButton();
   });
 
-  // Submit button
   document.getElementById("submit")?.addEventListener("click", handleSubmit);
 }
 
@@ -488,7 +467,6 @@ function attachDeleteListener() {
 
         await deleteGameResult(guildId, currentDate, currentUser.id);
 
-        // Reload the page to restart the game
         window.location.reload();
       } catch (error) {
         console.error("Error deleting game result:", error);

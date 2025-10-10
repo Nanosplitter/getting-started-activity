@@ -8,9 +8,8 @@ export const isLocalMode = window.location.hostname === "localhost" || window.lo
 
 // Check if dev mode is enabled (shows answers in order like local mode, but still uses Discord SDK)
 // Can be enabled via environment variable: VITE_DEV_MODE=true
-export const isDevMode = import.meta.env.VITE_DEV_MODE === 'true' || isLocalMode;
+export const isDevMode = import.meta.env.VITE_DEV_MODE === "true" || isLocalMode;
 
-// Game configuration
 export const GAME_CONFIG = {
   maxMistakes: 4,
   wordsPerCategory: 4,
@@ -18,19 +17,15 @@ export const GAME_CONFIG = {
   selectableWords: 4
 };
 
-// Date configuration
 export const DATE_CONFIG = {
   current: new Date().toISOString().split("T")[0],
   fallback: "2024-10-02"
 };
 
-// Category difficulty colors
 export const CATEGORY_COLORS = ["yellow", "green", "blue", "purple"];
 
-// Discord client configuration
 export const DISCORD_CLIENT_ID = import.meta.env.VITE_DISCORD_CLIENT_ID || "mock-client-id";
 
-// API endpoints
 export const API_ENDPOINTS = {
   token: "/api/token",
   connections: (date) => `/api/connections/${date}`,

@@ -13,16 +13,16 @@ export async function generateGameImage({ players = [], puzzleNumber = null }) {
     return generateEmptyImage(puzzleNumber);
   }
 
-  // Single player: horizontal layout (like Wordle)
+  // Single player: horizontal layout
   if (players.length === 1) {
     return generateSinglePlayerImage(players[0], puzzleNumber);
   }
 
   // Multiple players: side-by-side columns
   const playerWidth = 280;
-  const playerSpacing = 40;
-  const headerHeight = 80;
-  const gridHeight = 350;
+  const playerSpacing = 7;
+  const headerHeight = 170;
+  const gridHeight = 380;
 
   const width = Math.max(600, players.length * playerWidth + (players.length - 1) * playerSpacing + 40);
   const height = headerHeight + gridHeight;
@@ -197,9 +197,9 @@ async function drawPlayerSection(ctx, player, x, y, width) {
     try {
       console.log(`🖼️ Loading avatar for ${username}`);
       const avatar = await loadImage(avatarUrl);
-      const avatarSize = 60;
+      const avatarSize = 110;
       const avatarX = x + (width - avatarSize) / 2; // Center avatar
-      const avatarY = y - 70;
+      const avatarY = y - 130;
 
       // Create circular clipping path
       ctx.save();
@@ -225,8 +225,8 @@ async function drawPlayerSection(ctx, player, x, y, width) {
   ctx.textAlign = "left"; // Reset alignment
 
   // Grid settings
-  const cellSize = 42;
-  const cellSpacing = 5;
+  const cellSize = 40;
+  const cellSpacing = 6;
   const gridWidth = 4 * cellSize + 3 * cellSpacing;
   const gridX = x + (width - gridWidth) / 2; // Center grid
   let gridY = y + 10;

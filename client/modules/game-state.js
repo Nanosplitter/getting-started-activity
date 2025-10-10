@@ -4,7 +4,6 @@
 
 import { GAME_CONFIG } from "../config.js";
 
-// Game state object
 let gameState = {
   selectedWords: [],
   solvedCategories: [],
@@ -17,7 +16,6 @@ let gameState = {
   displayOrder: null
 };
 
-// Game data (puzzle data from NYT API)
 let gameData = null;
 let currentDate = null;
 
@@ -113,8 +111,8 @@ export function recordGuess(words, correct, difficulty = null, wordDifficulties 
   gameState.guessHistory.push({
     words: [...words],
     correct,
-    difficulty, // 0=yellow, 1=green, 2=blue, 3=purple (for correct guesses)
-    wordDifficulties, // Array of difficulties for each word (for incorrect guesses)
+    difficulty,
+    wordDifficulties,
     timestamp: Date.now()
   });
 }
@@ -171,7 +169,6 @@ export function getRemainingWords() {
     return [];
   }
 
-  // Get remaining words while preserving category order
   const remaining = [];
   gameData.categories.forEach((category) => {
     category.members.forEach((word) => {
@@ -191,33 +188,25 @@ export function getRemainingWords() {
 export function restoreFromGuessHistory(guessHistory) {
   console.log(`🔄 Restoring game state from ${guessHistory.length} guesses`);
 
-  // Reset state first
   gameState.solvedCategories = [];
   gameState.mistakes = 0;
   gameState.guessHistory = [];
   gameState.selectedWords = [];
 
-  // Replay each guess
   guessHistory.forEach((guess) => {
     if (guess.correct) {
-      // Find the category for this correct guess
-      const category = gameData.categories.find((cat) =>
-        cat.members.every((member) => guess.words.includes(member))
-      );
+      const category = gameData.categories.find((cat) => cat.members.every((member) => guess.words.includes(member)));
 
       if (category) {
         gameState.solvedCategories.push(category);
       }
     } else {
-      // Incorrect guess - increment mistakes
       gameState.mistakes++;
     }
 
-    // Add to guess history
     gameState.guessHistory.push(guess);
   });
 
-  // Check if game is over
   if (gameState.solvedCategories.length === 4 || gameState.mistakes >= gameState.maxMistakes) {
     gameState.isGameOver = true;
   }

@@ -22,20 +22,23 @@ const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_BOT_TOKEN)
 try {
   console.log("Started refreshing application (/) commands.");
 
-  // Get existing commands to preserve the Entry Point command
   const existingCommands = await rest.get(Routes.applicationCommands(process.env.VITE_DISCORD_CLIENT_ID));
 
-  console.log("Existing commands:", existingCommands.map((c) => c.name));
+  console.log(
+    "Existing commands:",
+    existingCommands.map((c) => c.name)
+  );
 
-  // Find the entry point command (usually named "launch" and has handler === 1)
   const entryPointCommand = existingCommands.find((cmd) => cmd.name === "launch" || cmd.handler === 1);
 
   console.log("Entry point command found:", entryPointCommand ? entryPointCommand.name : "none");
 
-  // Merge with existing entry point command if present
   const allCommands = entryPointCommand ? [entryPointCommand, ...commands] : commands;
 
-  console.log("Registering commands:", allCommands.map((c) => c.name));
+  console.log(
+    "Registering commands:",
+    allCommands.map((c) => c.name)
+  );
 
   await rest.put(Routes.applicationCommands(process.env.VITE_DISCORD_CLIENT_ID), { body: allCommands });
 

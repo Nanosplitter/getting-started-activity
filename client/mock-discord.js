@@ -1,13 +1,9 @@
-// Mock Discord SDK for local development without Discord
-// This simulates the Discord Embedded App SDK behavior
-
 export class MockDiscordSDK {
   constructor(clientId) {
     this.clientId = clientId;
     this.channelId = "mock-channel-123";
     this.guildId = "mock-guild-456";
 
-    // Mock commands
     this.commands = {
       authorize: async (config) => {
         console.log("[Mock Discord] Authorize called with:", config);
@@ -51,11 +47,9 @@ export class MockDiscordSDK {
   }
 }
 
-// Mock server token endpoint
 export async function mockTokenEndpoint(code) {
   console.log("[Mock Server] Token endpoint called with code:", code);
 
-  // Simulate server delay
   await new Promise((resolve) => setTimeout(resolve, 100));
 
   return {

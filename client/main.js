@@ -2,7 +2,13 @@ import "./style.css";
 import { isLocalMode, DATE_CONFIG } from "./config.js";
 import { setupDiscordSdk, getCurrentUser, getGuildId, getChannelId } from "./modules/discord.js";
 import { fetchGameData, fetchGameState, lookupUserSession } from "./modules/api.js";
-import { setGameData, setCurrentDate, updateGameState, restoreFromGuessHistory, setDisplayOrder } from "./modules/game-state.js";
+import {
+  setGameData,
+  setCurrentDate,
+  updateGameState,
+  restoreFromGuessHistory,
+  setDisplayOrder
+} from "./modules/game-state.js";
 import { hasUserPlayed } from "./modules/game-logic.js";
 import { renderGame } from "./modules/renderer.js";
 
@@ -15,19 +21,15 @@ async function initializeGame() {
   const app = document.querySelector("#app");
 
   try {
-    // Set up Discord SDK and authenticate
     await setupDiscordSdk();
     console.log("Discord SDK is authenticated");
 
-    // Get the current date (or fallback)
     let gameDate = DATE_CONFIG.current;
 
-    // Fetch today's connections game
     let gameData;
     try {
       gameData = await fetchGameData(gameDate);
     } catch (error) {
-      // If today's game doesn't exist, try the fallback date
       console.log(`No game found for ${gameDate}, using fallback date ${DATE_CONFIG.fallback}`);
       gameDate = DATE_CONFIG.fallback;
       gameData = await fetchGameData(gameDate);
@@ -44,7 +46,6 @@ async function initializeGame() {
       console.log("Initial display order set from API positions");
     }
 
-    // Fetch game state for this guild
     const guildId = getGuildId();
     const channelId = getChannelId();
     const currentUser = getCurrentUser();
@@ -53,26 +54,20 @@ async function initializeGame() {
     console.log("Server game state:", serverGameState);
     console.log("Current user:", currentUser);
 
-    // Look up if this user has an active session in this channel
     const sessionLookup = await lookupUserSession(channelId, currentUser.id);
 
-    // Always use userSessionId format for updates (server maps to messageSessionId internally)
     const sessionId = `${guildId}_${currentUser.id}_${gameDate}`;
 
     if (sessionLookup.found) {
-      // User has an existing session - restore their progress
       console.log("✅ Found existing session:", sessionLookup.messageSessionId);
 
-      // Restore progress from guess history
       if (sessionLookup.guessHistory && sessionLookup.guessHistory.length > 0) {
         restoreFromGuessHistory(sessionLookup.guessHistory);
         console.log(`🔄 Restored ${sessionLookup.guessHistory.length} guesses from server`);
       }
 
-      // Update game state with userSessionId
       updateGameState({ sessionId });
     } else {
-      // No active session found - check if user has completed this game before
       console.log("❌ No active session found, checking completion status");
 
       if (hasUserPlayed(serverGameState, currentUser.id)) {
@@ -92,7 +87,6 @@ async function initializeGame() {
 
     console.log("Rendering game...");
 
-    // Render the game
     renderGame(serverGameState);
   } catch (error) {
     console.error("Error initializing game:", error);
@@ -106,5 +100,4 @@ async function initializeGame() {
   }
 }
 
-// Start the application
 initializeGame();

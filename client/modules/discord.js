@@ -32,7 +32,6 @@ export async function setupDiscordSdk() {
   await discordSdk.ready();
   console.log("Discord SDK is ready");
 
-  // Authorize with Discord Client
   console.log("Requesting authorization with client_id:", DISCORD_CLIENT_ID);
   let authResult;
   try {
@@ -51,12 +50,10 @@ export async function setupDiscordSdk() {
   const { code } = authResult;
   console.log("Authorization code received:", code ? "YES" : "NO");
 
-  // Retrieve an access_token from your activity's server
   let tokenData;
   if (isLocalMode) {
     tokenData = await mockTokenEndpoint(code);
   } else {
-    // Use relative URL instead of absolute
     const response = await fetch("/api/token", {
       method: "POST",
       headers: {
@@ -74,7 +71,6 @@ export async function setupDiscordSdk() {
 
   const { access_token } = tokenData;
 
-  // Authenticate with Discord client
   auth = await discordSdk.commands.authenticate({
     access_token
   });

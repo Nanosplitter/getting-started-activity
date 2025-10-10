@@ -114,9 +114,7 @@ import { functionToTest } from "../../path/to/module.js";
 
 describe("module name", () => {
   describe("functionToTest", () => {
-    beforeEach(() => {
-      // Setup before each test
-    });
+    beforeEach(() => {});
 
     it("should do something specific", () => {
       const result = functionToTest(input);

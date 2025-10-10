@@ -36,13 +36,11 @@ describe("helpers", () => {
     let messageDiv;
 
     beforeEach(() => {
-      // Create a mock message div
       document.body.innerHTML = '<div id="message"></div>';
       messageDiv = document.getElementById("message");
     });
 
     afterEach(() => {
-      // Clean up
       document.body.innerHTML = "";
       vi.clearAllTimers();
     });
@@ -74,7 +72,6 @@ describe("helpers", () => {
       showMessage("Temporary message", "info");
       expect(messageDiv.innerHTML).toContain("Temporary message");
 
-      // Fast-forward time
       vi.advanceTimersByTime(2000);
 
       expect(messageDiv.innerHTML).toBe("");
@@ -98,7 +95,6 @@ describe("helpers", () => {
     it("should handle missing message div gracefully", () => {
       document.body.innerHTML = "";
 
-      // Should not throw
       expect(() => showMessage("Test", "info")).not.toThrow();
     });
 
@@ -116,7 +112,6 @@ describe("helpers", () => {
 
       const promise = wait(1000);
 
-      // Should not resolve immediately
       let resolved = false;
       promise.then(() => {
         resolved = true;
@@ -124,7 +119,6 @@ describe("helpers", () => {
 
       expect(resolved).toBe(false);
 
-      // Fast-forward time
       vi.advanceTimersByTime(1000);
 
       await promise;
@@ -141,9 +135,6 @@ describe("helpers", () => {
 
       vi.advanceTimersByTime(500);
       await promise;
-
-      // Note: In fake timer mode, Date.now() doesn't advance
-      // so we just verify the promise resolves
 
       vi.useRealTimers();
     });

@@ -30,11 +30,10 @@ export function checkCategoryMatch(selectedWords) {
   const selected = new Set(selectedWords);
 
   return gameData.categories.find((category) => {
-    // Skip already solved categories
     if (gameState.solvedCategories.some((solved) => solved.group === category.group)) {
       return false;
     }
-    // Check if all members match the selection
+
     return category.members.every((member) => selected.has(member));
   });
 }

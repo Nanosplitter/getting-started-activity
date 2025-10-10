@@ -88,7 +88,6 @@ export async function createReplySession(interaction, originalSession, client, a
 
     console.log(`🔄 Creating reply session for ${username} (original session complete)`);
 
-    // First, launch the activity for the new player (responds to interaction)
     await launchActivity(client, interaction);
     console.log(`🚀 Activity launched for ${username}`);
 

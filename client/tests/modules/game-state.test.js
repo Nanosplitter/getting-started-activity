@@ -21,7 +21,6 @@ import {
 
 describe("game-state", () => {
   beforeEach(() => {
-    // Reset state before each test
     resetGameState();
   });
 
@@ -51,13 +50,11 @@ describe("game-state", () => {
 
   describe("resetGameState", () => {
     it("should reset state to initial values", () => {
-      // Modify state
       const state = getGameState();
       state.mistakes = 3;
       state.isGameOver = true;
       state.selectedWords = ["word1", "word2"];
 
-      // Reset
       resetGameState();
 
       const newState = getGameState();
@@ -81,7 +78,7 @@ describe("game-state", () => {
 
       const state = getGameState();
       expect(state.mistakes).toBe(1);
-      expect(state.isGameOver).toBe(false); // Should remain unchanged
+      expect(state.isGameOver).toBe(false);
     });
   });
 
@@ -122,7 +119,7 @@ describe("game-state", () => {
       toggleWordSelection("WORD3");
       toggleWordSelection("WORD4");
 
-      toggleWordSelection("WORD2"); // Remove one
+      toggleWordSelection("WORD2");
 
       const state = getGameState();
       expect(state.selectedWords).toHaveLength(3);
@@ -202,7 +199,7 @@ describe("game-state", () => {
       }
 
       const state = getGameState();
-      expect(state.mistakes).toBe(10); // Counter continues
+      expect(state.mistakes).toBe(10);
       expect(state.isGameOver).toBe(true);
     });
   });
@@ -280,7 +277,6 @@ describe("game-state", () => {
     it("should preserve category order", () => {
       const remaining = getRemainingWords();
 
-      // Words should be in category order (FRUITS, then COLORS, then ANIMALS, then SHAPES)
       const fruitIndex = remaining.indexOf("APPLE");
       const colorIndex = remaining.indexOf("RED");
       const animalIndex = remaining.indexOf("DOG");
