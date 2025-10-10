@@ -50,3 +50,17 @@ export async function fetchSession(sessionId) {
     return null;
   }
 }
+
+export async function hasPlayerCompletedGame(guildId, userId, date) {
+  try {
+    const response = await fetch(`${SERVER_URL}/api/gamestate/${guildId}/${date}`);
+    if (response.ok) {
+      const gameState = await response.json();
+      return gameState.players && gameState.players[userId] !== undefined;
+    }
+    return false;
+  } catch (error) {
+    console.error("Failed to check if player completed game:", error.message);
+    return false;
+  }
+}

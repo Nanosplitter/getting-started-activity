@@ -7,6 +7,8 @@ import { startGameSession, createReplySession, restoreSessionFromServer } from "
 import { checkSessionUpdates } from "./lib/session-updates.js";
 import { hasActivePlayer, handlePlayerJoin } from "./lib/player-handler.js";
 import { launchActivity } from "./lib/discord-utils.js";
+import { hasPlayerCompletedGame } from "./lib/server-api.js";
+import { getTodayDate } from "./lib/utils.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -58,6 +60,21 @@ client.on("interactionCreate", async (interaction) => {
 
         if (session) {
           const userId = interaction.user.id;
+          const username = interaction.user.username;
+          const guildId = session.guildId || "dm";
+          const today = getTodayDate();
+
+          // Check if player has already completed a game today
+          const hasCompleted = await hasPlayerCompletedGame(guildId, userId, today);
+          if (hasCompleted) {
+            console.log(`✅ ${username} has already completed today's game - launching activity to view results`);
+            // Just launch the activity so they can see their completed game
+            // Don't create a new session or message
+            await launchActivity(client, interaction);
+            console.log(`🚀 Activity launched for ${username} (view only - already completed)`);
+            return;
+          }
+
           const existingPlayer = session.players.find((p) => p.userId === userId);
 
           if (!existingPlayer) {
@@ -72,7 +89,7 @@ client.on("interactionCreate", async (interaction) => {
 
             await handlePlayerJoin(client, interaction, session);
           } else {
-            console.log(`♻️ ${interaction.user.username} rejoining session ${sessionId}`);
+            console.log(`♻️ ${username} rejoining session ${sessionId}`);
           }
         }
 
