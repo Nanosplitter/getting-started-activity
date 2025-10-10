@@ -61,7 +61,10 @@ client.on("interactionCreate", async (interaction) => {
           const existingPlayer = session.players.find((p) => p.userId === userId);
 
           if (!existingPlayer) {
-            if (session.players.length > 0 && !hasActivePlayer(session)) {
+            const hasActive = hasActivePlayer(session);
+            console.log(`📊 Session ${sessionId}: ${session.players.length} player(s), hasActivePlayer: ${hasActive}`);
+
+            if (session.players.length > 0 && !hasActive) {
               console.log(`🔄 All players in session ${sessionId} are complete - creating reply session`);
               await createReplySession(interaction, session, client, activeSessions);
               return;

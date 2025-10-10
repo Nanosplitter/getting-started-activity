@@ -22,7 +22,7 @@ export async function generateGameImage({ players = [], puzzleNumber = null }) {
   const playerWidth = 280;
   const playerSpacing = 40;
   const headerHeight = 80;
-  const gridHeight = 320;
+  const gridHeight = 350;
 
   const width = Math.max(600, players.length * playerWidth + (players.length - 1) * playerSpacing + 40);
   const height = headerHeight + gridHeight;

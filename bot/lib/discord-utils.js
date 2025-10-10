@@ -44,12 +44,21 @@ export async function launchActivity(client, interaction) {
 
 export async function updateSessionMessage(client, session, attachment, messageText, button) {
   if (session.interaction) {
+    // Use interaction for messages created via /connections command
     await session.interaction.editReply({
       content: messageText,
       files: [attachment],
       components: [button]
     });
+  } else if (session.webhook) {
+    // Use webhook for messages created via reply session (user-installed app)
+    await session.webhook.editMessage(session.messageId, {
+      content: messageText,
+      files: [attachment],
+      components: [button]
+    });
   } else {
+    // Fallback to REST API (requires channel access)
     await client.rest.patch(Routes.channelMessage(session.channelId, session.messageId), {
       body: {
         content: messageText,

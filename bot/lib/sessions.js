@@ -10,6 +10,11 @@ export async function startGameSession(interaction, client, activeSessions) {
     const puzzleNumber = getPuzzleNumber();
 
     console.log(`🎬 Starting new multi-user session for guild: ${guildId}`);
+    console.log(`📍 Initial interaction.channelId: ${channelId}`);
+    console.log(`📍 interaction.channel exists: ${!!interaction.channel}`);
+    if (interaction.channel) {
+      console.log(`📍 interaction.channel.id: ${interaction.channel.id}, type: ${interaction.channel.type}`);
+    }
 
     await interaction.deferReply();
 
@@ -25,6 +30,11 @@ export async function startGameSession(interaction, client, activeSessions) {
     });
 
     const reply = await interaction.fetchReply();
+    console.log(`📍 Reply object - channelId: ${reply.channelId}, channel exists: ${!!reply.channel}`);
+    if (reply.channel) {
+      console.log(`📍 reply.channel.id: ${reply.channel.id}, type: ${reply.channel.type}`);
+    }
+
     const actualChannelId = reply.channel?.id || reply.channelId || channelId;
     const sessionId = reply.id;
 
@@ -78,17 +88,21 @@ export async function createReplySession(interaction, originalSession, client, a
 
     console.log(`🔄 Creating reply session for ${username} (original session complete)`);
 
+    // First, launch the activity for the new player (responds to interaction)
+    await launchActivity(client, interaction);
+    console.log(`🚀 Activity launched for ${username}`);
+
     const attachment = await createGameAttachment(
       [{ userId, username, avatarUrl, guessHistory: [], lastGuessCount: 0 }],
       puzzleNumber
     );
 
-    const channel = await client.channels.fetch(originalSession.channelId);
-    if (!channel || !channel.isTextBased()) {
-      throw new Error("Channel not found or is not text-based");
-    }
+    // Use webhook to create a follow-up message without needing channel access
+    // We use the interaction's webhook since we can't use followUp after launching activity
+    console.log(`📤 Creating webhook message for new session`);
 
-    const replyMessage = await channel.send({
+    const webhook = interaction.webhook;
+    const followUpMessage = await webhook.send({
       content: `**${username}** is playing Connections #${puzzleNumber}`,
       files: [attachment],
       components: [
@@ -96,13 +110,17 @@ export async function createReplySession(interaction, originalSession, client, a
           new ButtonBuilder().setCustomId(`launch_activity_temp`).setLabel("Play now!").setStyle(ButtonStyle.Primary)
         )
       ],
-      reply: { messageReference: originalSession.messageId }
+      wait: true
     });
 
-    const newSessionId = replyMessage.id;
-    console.log(`✅ Created reply message ${newSessionId} in response to ${originalSession.messageId}`);
+    const newSessionId = followUpMessage.id;
+    const actualChannelId = followUpMessage.channel_id || interaction.channelId;
 
-    await replyMessage.edit({
+    console.log(`✅ Created webhook message ${newSessionId} in channel ${actualChannelId}`);
+    console.log(`📋 followUpMessage keys:`, Object.keys(followUpMessage));
+
+    // Update the message button with the actual session ID using webhook
+    await webhook.editMessage(followUpMessage.id, {
       components: [
         new ActionRowBuilder().addComponents(
           new ButtonBuilder()
@@ -115,29 +133,32 @@ export async function createReplySession(interaction, originalSession, client, a
 
     activeSessions.set(newSessionId, {
       sessionId: newSessionId,
-      channelId: interaction.channelId,
-      messageId: replyMessage.id,
+      channelId: actualChannelId,
+      messageId: followUpMessage.id,
       guildId: originalSession.guildId,
       puzzleNumber,
       players: [{ userId, username, avatarUrl, guessHistory: [], lastGuessCount: 0 }],
       interaction: null,
+      webhook: webhook, // Store webhook for updating messages without channel access
       parentMessageId: originalSession.messageId
     });
 
     const gameDate = getTodayDate();
-    await notifySessionStart(newSessionId, originalSession.guildId, interaction.channelId, replyMessage.id);
+    await notifySessionStart(newSessionId, originalSession.guildId, actualChannelId, followUpMessage.id);
     await notifyPlayerJoin(newSessionId, userId, username, avatarUrl, originalSession.guildId, gameDate);
 
     console.log(`✓ Reply session ${newSessionId} created with ${username} as first player`);
-
-    await launchActivity(client, interaction);
-    console.log(`🚀 Activity launched for ${username} in new reply session`);
   } catch (error) {
-    console.error("Error creating reply session:", error);
+    console.error("❌ Error creating reply session:", error);
+    console.error("Stack trace:", error.stack);
+    // If activity was launched, interaction is already responded to
+    // If error occurred before launch, try to defer the interaction
     try {
-      await interaction.deferUpdate();
-    } catch (e) {
-      // Ignore
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.deferUpdate();
+      }
+    } catch (deferError) {
+      console.error("Could not defer interaction:", deferError.message);
     }
   }
 }
