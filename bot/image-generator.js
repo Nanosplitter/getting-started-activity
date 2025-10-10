@@ -130,39 +130,58 @@ async function generateSinglePlayerImage(player, puzzleNumber) {
   const incorrectColor = "#5a5a5a";
 
   // Check if game is complete (4 correct OR 4 mistakes)
-  const correctCount = guessHistory.filter(g => g.correct).length;
-  const mistakeCount = guessHistory.filter(g => !g.correct).length;
+  const correctCount = guessHistory.filter((g) => g.correct).length;
+  const mistakeCount = guessHistory.filter((g) => !g.correct).length;
   const isGameComplete = correctCount === 4 || mistakeCount >= 4;
 
-  // Draw guess grid
-  guessHistory.forEach((guess, rowIndex) => {
-    const rowY = gridStartY + rowIndex * (cellSize + cellSpacing);
+  const totalRows = 7;
+  const emptyColor = "#2a2a2a"; // Darker gray for empty squares
 
-    if (guess.correct && guess.difficulty !== null) {
-      // Correct guess - all same color
-      const color = colors[guess.difficulty] || incorrectColor;
-      for (let col = 0; col < 4; col++) {
-        const cellX = gridX + col * (cellSize + cellSpacing);
-        ctx.fillStyle = color;
-        ctx.fillRect(cellX, rowY, cellSize, cellSize);
-      }
-    } else if (isGameComplete && guess.wordDifficulties && guess.wordDifficulties.length === 4) {
-      // Incorrect guess - show word colors ONLY if game is complete
-      for (let col = 0; col < 4; col++) {
-        const cellX = gridX + col * (cellSize + cellSpacing);
-        const wordDiff = guess.wordDifficulties[col];
-        ctx.fillStyle = wordDiff !== null ? (colors[wordDiff] || incorrectColor) : incorrectColor;
-        ctx.fillRect(cellX, rowY, cellSize, cellSize);
+  // Draw all 7 rows
+  for (let rowIndex = 0; rowIndex < totalRows; rowIndex++) {
+    const rowY = gridStartY + rowIndex * (cellSize + cellSpacing);
+    const guess = guessHistory[rowIndex];
+
+    if (guess) {
+      // Draw actual guess
+      if (guess.correct && guess.difficulty !== null) {
+        // Correct guess - all same color
+        const color = colors[guess.difficulty] || incorrectColor;
+        for (let col = 0; col < 4; col++) {
+          const cellX = gridX + col * (cellSize + cellSpacing);
+          ctx.fillStyle = color;
+          ctx.fillRect(cellX, rowY, cellSize, cellSize);
+        }
+      } else if (isGameComplete && guess.wordDifficulties && guess.wordDifficulties.length === 4) {
+        // Incorrect guess - show word colors ONLY if game is complete
+        for (let col = 0; col < 4; col++) {
+          const cellX = gridX + col * (cellSize + cellSpacing);
+          const wordDiff = guess.wordDifficulties[col];
+          ctx.fillStyle = wordDiff !== null ? colors[wordDiff] || incorrectColor : incorrectColor;
+          ctx.fillRect(cellX, rowY, cellSize, cellSize);
+        }
+      } else {
+        // Game in progress OR no word difficulties - gray squares
+        for (let col = 0; col < 4; col++) {
+          const cellX = gridX + col * (cellSize + cellSpacing);
+          ctx.fillStyle = incorrectColor;
+          ctx.fillRect(cellX, rowY, cellSize, cellSize);
+        }
       }
     } else {
-      // Game in progress OR no word difficulties - gray squares
+      // Draw empty squares with border
       for (let col = 0; col < 4; col++) {
         const cellX = gridX + col * (cellSize + cellSpacing);
-        ctx.fillStyle = incorrectColor;
+        ctx.fillStyle = emptyColor;
         ctx.fillRect(cellX, rowY, cellSize, cellSize);
+
+        // Add border to empty squares
+        ctx.strokeStyle = "#444444";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(cellX, rowY, cellSize, cellSize);
       }
     }
-  });
+  }
 
   return canvas.toBuffer("image/png");
 }
@@ -223,39 +242,58 @@ async function drawPlayerSection(ctx, player, x, y, width) {
   const incorrectColor = "#5a5a5a"; // Gray
 
   // Check if this player's game is complete
-  const correctCount = guessHistory.filter(g => g.correct).length;
-  const mistakeCount = guessHistory.filter(g => !g.correct).length;
+  const correctCount = guessHistory.filter((g) => g.correct).length;
+  const mistakeCount = guessHistory.filter((g) => !g.correct).length;
   const isGameComplete = correctCount === 4 || mistakeCount >= 4;
 
-  // Draw guess grid
-  guessHistory.forEach((guess, rowIndex) => {
-    const rowY = gridY + rowIndex * (cellSize + cellSpacing);
+  const totalRows = 7;
+  const emptyColor = "#2a2a2a"; // Darker gray for empty squares
 
-    if (guess.correct && guess.difficulty !== null) {
-      // Correct guess - show 4 squares of the same color
-      const color = colors[guess.difficulty] || incorrectColor;
-      for (let col = 0; col < 4; col++) {
-        const cellX = gridX + col * (cellSize + cellSpacing);
-        ctx.fillStyle = color;
-        ctx.fillRect(cellX, rowY, cellSize, cellSize);
-      }
-    } else if (isGameComplete && guess.wordDifficulties && guess.wordDifficulties.length === 4) {
-      // Incorrect guess - show word colors ONLY if game is complete
-      for (let col = 0; col < 4; col++) {
-        const cellX = gridX + col * (cellSize + cellSpacing);
-        const wordDiff = guess.wordDifficulties[col];
-        ctx.fillStyle = wordDiff !== null ? (colors[wordDiff] || incorrectColor) : incorrectColor;
-        ctx.fillRect(cellX, rowY, cellSize, cellSize);
+  // Draw all 7 rows
+  for (let rowIndex = 0; rowIndex < totalRows; rowIndex++) {
+    const rowY = gridY + rowIndex * (cellSize + cellSpacing);
+    const guess = guessHistory[rowIndex];
+
+    if (guess) {
+      // Draw actual guess
+      if (guess.correct && guess.difficulty !== null) {
+        // Correct guess - show 4 squares of the same color
+        const color = colors[guess.difficulty] || incorrectColor;
+        for (let col = 0; col < 4; col++) {
+          const cellX = gridX + col * (cellSize + cellSpacing);
+          ctx.fillStyle = color;
+          ctx.fillRect(cellX, rowY, cellSize, cellSize);
+        }
+      } else if (isGameComplete && guess.wordDifficulties && guess.wordDifficulties.length === 4) {
+        // Incorrect guess - show word colors ONLY if game is complete
+        for (let col = 0; col < 4; col++) {
+          const cellX = gridX + col * (cellSize + cellSpacing);
+          const wordDiff = guess.wordDifficulties[col];
+          ctx.fillStyle = wordDiff !== null ? colors[wordDiff] || incorrectColor : incorrectColor;
+          ctx.fillRect(cellX, rowY, cellSize, cellSize);
+        }
+      } else {
+        // Game in progress OR no word difficulties - gray squares
+        for (let col = 0; col < 4; col++) {
+          const cellX = gridX + col * (cellSize + cellSpacing);
+          ctx.fillStyle = incorrectColor;
+          ctx.fillRect(cellX, rowY, cellSize, cellSize);
+        }
       }
     } else {
-      // Game in progress OR no word difficulties - gray squares
+      // Draw empty squares with border
       for (let col = 0; col < 4; col++) {
         const cellX = gridX + col * (cellSize + cellSpacing);
-        ctx.fillStyle = incorrectColor;
+        ctx.fillStyle = emptyColor;
         ctx.fillRect(cellX, rowY, cellSize, cellSize);
+
+        // Add border to empty squares
+        ctx.strokeStyle = "#444444";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(cellX, rowY, cellSize, cellSize);
       }
     }
-  });
+  }
 
   // Stats removed - just show the grid
 }

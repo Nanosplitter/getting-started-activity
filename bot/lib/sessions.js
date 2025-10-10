@@ -93,11 +93,7 @@ export async function createReplySession(interaction, originalSession, client, a
       files: [attachment],
       components: [
         new ActionRowBuilder().addComponents(
-          new ButtonBuilder()
-            .setCustomId(`launch_activity_temp`)
-            .setLabel("Play")
-            .setStyle(ButtonStyle.Primary)
-            .setEmoji("🎮")
+          new ButtonBuilder().setCustomId(`launch_activity_temp`).setLabel("Play now!").setStyle(ButtonStyle.Primary)
         )
       ],
       reply: { messageReference: originalSession.messageId }
@@ -111,9 +107,8 @@ export async function createReplySession(interaction, originalSession, client, a
         new ActionRowBuilder().addComponents(
           new ButtonBuilder()
             .setCustomId(`launch_activity_${newSessionId}`)
-            .setLabel("Play")
+            .setLabel("Play now!")
             .setStyle(ButtonStyle.Primary)
-            .setEmoji("🎮")
         )
       ]
     });
