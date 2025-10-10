@@ -147,9 +147,7 @@ export async function handleSubmit() {
 
     recordGuess(gameState.selectedWords, false, null, wordDifficulties);
     incrementMistakes();
-    // Don't clear selection - let them adjust their guess
 
-    // Update session with new guess
     await updateSessionState();
 
     // Check for "one away" using the saved words

@@ -1,18 +1,3 @@
-/**
- * Connections Game - Main Entry Point
- *
- * This is the main entry point for the Connections game.
- * The code is organized into modules for better maintainability:
- *
- * - config.js: Configuration and constants
- * - modules/discord.js: Discord SDK setup and authentication
- * - modules/game-state.js: Game state management
- * - modules/game-logic.js: Game rules and validation logic
- * - modules/renderer.js: UI rendering functions
- * - modules/api.js: Server API communication
- * - utils/helpers.js: Utility functions
- */
-
 import "./style.css";
 import { isLocalMode, DATE_CONFIG } from "./config.js";
 import { setupDiscordSdk, getCurrentUser, getGuildId, getChannelId } from "./modules/discord.js";
@@ -21,7 +6,6 @@ import { setGameData, setCurrentDate, updateGameState, restoreFromGuessHistory, 
 import { hasUserPlayed } from "./modules/game-logic.js";
 import { renderGame } from "./modules/renderer.js";
 
-// Log the current mode
 console.log(`Running in ${isLocalMode ? "LOCAL" : "DISCORD"} mode`);
 
 /**

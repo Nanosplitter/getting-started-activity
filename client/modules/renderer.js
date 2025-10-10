@@ -180,6 +180,27 @@ function renderGuessGrid(guessHistory) {
 }
 
 /**
+ * Helper to render categories with optional solved/unsolved styling
+ * @param {Array} categoriesToRender - Array of category objects with `solved` property
+ * @returns {string} - HTML string
+ */
+function renderCategoriesWithState(categoriesToRender) {
+  let html = `<div class="solved-categories">`;
+  categoriesToRender.forEach(category => {
+    const colorClass = CATEGORY_COLORS[category.difficulty] || "yellow";
+    const opacity = category.solved ? "" : " unsolved";
+    html += `
+      <div class="category ${colorClass}${opacity}">
+        <div class="category-title">${escapeHtml(category.group)}</div>
+        <div class="category-words">${category.members.map(escapeHtml).join(", ")}</div>
+      </div>
+    `;
+  });
+  html += `</div>`;
+  return html;
+}
+
+/**
  * Render categories from completed game data
  * @param {Array} guessHistory - Player's guess history
  * @returns {string} - HTML string
@@ -201,12 +222,10 @@ function renderCompletedCategories(guessHistory) {
     }).filter(Boolean)
   );
 
-  const allCategories = [];
-
-  gameData.categories.forEach(cat => {
-    const isSolved = solvedGroups.has(cat.group);
-    allCategories.push({ ...cat, solved: isSolved });
-  });
+  const allCategories = gameData.categories.map(cat => ({
+    ...cat,
+    solved: solvedGroups.has(cat.group)
+  }));
 
   allCategories.sort((a, b) => {
     if (a.solved && !b.solved) return -1;
@@ -214,20 +233,7 @@ function renderCompletedCategories(guessHistory) {
     return 0;
   });
 
-  let html = `<div class="solved-categories">`;
-  allCategories.forEach(category => {
-    const colorClass = CATEGORY_COLORS[category.difficulty] || "yellow";
-    const opacity = category.solved ? "" : " unsolved";
-    html += `
-      <div class="category ${colorClass}${opacity}">
-        <div class="category-title">${escapeHtml(category.group)}</div>
-        <div class="category-words">${category.members.map(escapeHtml).join(", ")}</div>
-      </div>
-    `;
-  });
-  html += `</div>`;
-
-  return html;
+  return renderCategoriesWithState(allCategories);
 }
 
 /**
@@ -267,32 +273,12 @@ function renderFinalCategories() {
   }
 
   const solvedGroups = new Set(gameState.solvedCategories.map(cat => cat.group));
-  const allCategories = [];
+  const allCategories = [
+    ...gameState.solvedCategories.map(cat => ({ ...cat, solved: true })),
+    ...gameData.categories.filter(cat => !solvedGroups.has(cat.group)).map(cat => ({ ...cat, solved: false }))
+  ];
 
-  gameState.solvedCategories.forEach(cat => {
-    allCategories.push({ ...cat, solved: true });
-  });
-
-  gameData.categories.forEach(cat => {
-    if (!solvedGroups.has(cat.group)) {
-      allCategories.push({ ...cat, solved: false });
-    }
-  });
-
-  let html = `<div class="solved-categories">`;
-  allCategories.forEach(category => {
-    const colorClass = CATEGORY_COLORS[category.difficulty] || "yellow";
-    const opacity = category.solved ? "" : " unsolved";
-    html += `
-      <div class="category ${colorClass}${opacity}">
-        <div class="category-title">${escapeHtml(category.group)}</div>
-        <div class="category-words">${category.members.map(escapeHtml).join(", ")}</div>
-      </div>
-    `;
-  });
-  html += `</div>`;
-
-  return html;
+  return renderCategoriesWithState(allCategories);
 }
 
 /**

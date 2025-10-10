@@ -125,7 +125,6 @@ export async function updateSession(sessionId, guessHistory) {
     console.log("✅ Session updated successfully:", result);
     return result;
   } catch (error) {
-    // Silently fail if session endpoint is not available
     console.warn("⚠️ Session update failed:", error.message);
     return null;
   }

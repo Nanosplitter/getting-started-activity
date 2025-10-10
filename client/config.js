@@ -20,9 +20,7 @@ export const GAME_CONFIG = {
 
 // Date configuration
 export const DATE_CONFIG = {
-  // Use current date
   current: new Date().toISOString().split("T")[0],
-  // current: "2025-10-02", // Hardcoded for testing
   fallback: "2024-10-02"
 };
 
