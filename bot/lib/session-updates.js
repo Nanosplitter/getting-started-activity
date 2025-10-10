@@ -74,6 +74,19 @@ export async function checkSessionUpdates(client, activeSessions) {
         } catch (editError) {
           console.error(`❌ Failed to edit message:`, editError.message);
         }
+      } else if (session.players.length > 0) {
+        // Even without updates, check if session should be cleaned up
+        const allComplete = session.players.every((player) => {
+          const guesses = player.guessHistory || [];
+          const correctCount = guesses.filter((g) => g.correct).length;
+          const mistakeCount = guesses.filter((g) => !g.correct).length;
+          return correctCount === 4 || mistakeCount >= 4;
+        });
+
+        if (allComplete) {
+          activeSessions.delete(sessionId);
+          console.log(`✓ Game session ${sessionId} completed - removing from active sessions`);
+        }
       }
     } catch (error) {
       console.error(`Error checking session ${sessionId}:`, error.message);
