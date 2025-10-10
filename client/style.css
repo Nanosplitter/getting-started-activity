@@ -252,6 +252,11 @@ h1 {
   color: #000;
 }
 
+.category.unsolved {
+  opacity: 0.4;
+  filter: grayscale(30%);
+}
+
 .category-title {
   font-weight: 700;
   text-transform: uppercase;

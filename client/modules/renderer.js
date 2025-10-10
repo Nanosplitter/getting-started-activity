@@ -174,6 +174,57 @@ function renderGuessGrid(guessHistory) {
 }
 
 /**
+ * Render categories from completed game data
+ * @param {Array} guessHistory - Player's guess history
+ * @returns {string} - HTML string
+ */
+function renderCompletedCategories(guessHistory) {
+  const gameData = getGameData();
+
+  if (!gameData || !gameData.categories) {
+    return "";
+  }
+
+  const correctGuesses = guessHistory.filter(g => g.correct);
+  const solvedGroups = new Set(
+    correctGuesses.map(guess => {
+      const category = gameData.categories.find(cat =>
+        cat.members.every(member => guess.words.includes(member))
+      );
+      return category?.group;
+    }).filter(Boolean)
+  );
+
+  const allCategories = [];
+
+  gameData.categories.forEach(cat => {
+    const isSolved = solvedGroups.has(cat.group);
+    allCategories.push({ ...cat, solved: isSolved });
+  });
+
+  allCategories.sort((a, b) => {
+    if (a.solved && !b.solved) return -1;
+    if (!a.solved && b.solved) return 1;
+    return 0;
+  });
+
+  let html = `<div class="solved-categories">`;
+  allCategories.forEach(category => {
+    const colorClass = CATEGORY_COLORS[category.difficulty] || "yellow";
+    const opacity = category.solved ? "" : " unsolved";
+    html += `
+      <div class="category ${colorClass}${opacity}">
+        <div class="category-title">${escapeHtml(category.group)}</div>
+        <div class="category-words">${category.members.map(escapeHtml).join(", ")}</div>
+      </div>
+    `;
+  });
+  html += `</div>`;
+
+  return html;
+}
+
+/**
  * Render message for players who already completed the game
  * @param {Object} serverGameState - Server game state
  * @param {Object} currentUser - Current user object
@@ -191,10 +242,51 @@ function renderAlreadyPlayed(serverGameState, currentUser) {
         Score: ${playerData.score}/4 categories<br>
         Mistakes: ${playerData.mistakes}/4
       </div>
-      ${renderGuessGrid(guessHistory)}
+      ${renderCompletedCategories(guessHistory)}
       ${isDevMode ? '<button id="delete-record" class="dev-delete-btn">Delete My Record</button>' : ""}
     </div>
   `;
+}
+
+/**
+ * Render all categories at game end (solved first, then unsolved)
+ * @returns {string} - HTML string
+ */
+function renderFinalCategories() {
+  const gameState = getGameState();
+  const gameData = getGameData();
+
+  if (!gameData || !gameData.categories) {
+    return "";
+  }
+
+  const solvedGroups = new Set(gameState.solvedCategories.map(cat => cat.group));
+  const allCategories = [];
+
+  gameState.solvedCategories.forEach(cat => {
+    allCategories.push({ ...cat, solved: true });
+  });
+
+  gameData.categories.forEach(cat => {
+    if (!solvedGroups.has(cat.group)) {
+      allCategories.push({ ...cat, solved: false });
+    }
+  });
+
+  let html = `<div class="solved-categories">`;
+  allCategories.forEach(category => {
+    const colorClass = CATEGORY_COLORS[category.difficulty] || "yellow";
+    const opacity = category.solved ? "" : " unsolved";
+    html += `
+      <div class="category ${colorClass}${opacity}">
+        <div class="category-title">${escapeHtml(category.group)}</div>
+        <div class="category-words">${category.members.map(escapeHtml).join(", ")}</div>
+      </div>
+    `;
+  });
+  html += `</div>`;
+
+  return html;
 }
 
 /**
@@ -213,7 +305,7 @@ function renderGameOver() {
         You solved ${score}/4 categories<br>
         Mistakes: ${gameState.mistakes}/${gameState.maxMistakes}
       </div>
-      ${renderGuessGrid(gameState.guessHistory)}
+      ${renderFinalCategories()}
       ${isDevMode ? '<button id="delete-record" class="dev-delete-btn">Delete My Record (Dev Mode)</button>' : ""}
     </div>
   `;
