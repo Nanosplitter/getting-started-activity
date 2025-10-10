@@ -42,7 +42,7 @@ client.on("ready", async () => {
 
 client.on("interactionCreate", async (interaction) => {
   if (interaction.isChatInputCommand()) {
-    if (interaction.commandName === "connections") {
+    if (interaction.commandName === "synapse") {
       await startGameSession(interaction, client, activeSessions);
     }
     return;

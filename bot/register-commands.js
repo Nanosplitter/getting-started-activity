@@ -10,8 +10,8 @@ dotenv.config({ path: join(__dirname, "../.env") });
 
 const commands = [
   new SlashCommandBuilder()
-    .setName("connections")
-    .setDescription("Start playing Connections and share your progress")
+    .setName("synapse")
+    .setDescription("Start playing Synapse and share your progress")
     .setContexts([0, 1, 2]) // 0 = Guild, 1 = Bot DM, 2 = Private Channel
     .setIntegrationTypes([0, 1]) // 0 = Guild Install, 1 = User Install
     .toJSON()
