@@ -435,14 +435,32 @@ app.delete("/api/gamestate/:guildId/:date/:userId", async (req, res) => {
   const { guildId, date, userId } = req.params;
 
   try {
+    console.log(`🗑️ Deleting game record for user ${userId} on ${date}`);
+
+    const userSessionId = `${guildId}_${userId}_${date}`;
+    const messageSessionId = userToMessageSession[userSessionId];
+
+    if (messageSessionId) {
+      if (activeSessions[messageSessionId]?.players[userId]) {
+        delete activeSessions[messageSessionId].players[userId];
+        console.log(`✅ Cleared user ${userId} from active session ${messageSessionId}`);
+      }
+
+      delete userToMessageSession[userSessionId];
+      console.log(`✅ Cleared user session mapping: ${userSessionId}`);
+
+      if (activeSessions[messageSessionId] && Object.keys(activeSessions[messageSessionId].players).length === 0) {
+        delete activeSessions[messageSessionId];
+        console.log(`✅ Removed empty session ${messageSessionId}`);
+      }
+    }
+
     if (pool) {
-      // Delete from database
       await pool.query(
         `DELETE FROM game_results WHERE guild_id = ? AND game_date = ? AND user_id = ?`,
         [guildId, date, userId]
       );
 
-      // Fetch updated game state
       const [rows] = await pool.query(
         `SELECT user_id, username, avatar, score, mistakes, guess_history, completed_at
          FROM game_results
@@ -462,12 +480,13 @@ app.delete("/api/gamestate/:guildId/:date/:userId", async (req, res) => {
         };
       });
 
+      console.log(`✅ Deleted from database`);
       res.json({ success: true, gameState: { date, players } });
     } else {
-      // Fallback to in-memory storage
       if (gameState[guildId] && gameState[guildId].players) {
         delete gameState[guildId].players[userId];
       }
+      console.log(`✅ Deleted from in-memory storage`);
       res.json({ success: true, gameState: gameState[guildId] || { date, players: {} } });
     }
   } catch (error) {
