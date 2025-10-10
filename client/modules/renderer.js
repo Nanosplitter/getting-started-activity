@@ -144,12 +144,13 @@ function renderGuessGrid(guessHistory) {
     return '<div class="guess-grid">No data</div>';
   }
 
-  const colorEmojis = {
-    0: "🟨", // Yellow (easiest)
-    1: "🟩", // Green
-    2: "🟦", // Blue
-    3: "🟪" // Purple (hardest)
+  const colors = {
+    0: "#f9df6d", // Yellow (easiest)
+    1: "#a0c35a", // Green
+    2: "#b0c4ef", // Blue
+    3: "#ba81c5" // Purple (hardest)
   };
+  const incorrectColor = "#5a5a5a";
 
   return `
     <div class="guess-grid">
@@ -157,15 +158,20 @@ function renderGuessGrid(guessHistory) {
         .map((guess) => {
           if (guess.correct && guess.difficulty !== null) {
             // Correct guess - show 4 squares of the same color
-            const emoji = colorEmojis[guess.difficulty] || "⬜";
-            return `<div class="guess-row">${emoji}${emoji}${emoji}${emoji}</div>`;
+            const color = colors[guess.difficulty] || incorrectColor;
+            return `
+              <div class="guess-row">
+                ${Array(4).fill(`<div class="guess-square" style="background-color: ${color}"></div>`).join('')}
+              </div>
+            `;
           } else {
             // Incorrect guess - show the actual colors of the words guessed
-            const emojis = guess.words.map((word) => {
+            const squares = guess.words.map((word) => {
               const difficulty = getWordDifficulty(word);
-              return colorEmojis[difficulty] || "⬜";
+              const color = difficulty !== null ? colors[difficulty] : incorrectColor;
+              return `<div class="guess-square" style="background-color: ${color}"></div>`;
             });
-            return `<div class="guess-row">${emojis.join("")}</div>`;
+            return `<div class="guess-row">${squares.join("")}</div>`;
           }
         })
         .join("")}
