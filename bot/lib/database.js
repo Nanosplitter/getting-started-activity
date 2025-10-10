@@ -40,7 +40,7 @@ export async function checkForCompletedGames(client, pool, postedGames) {
       const guild = client.guilds.cache.get(row.guild_id);
       if (!guild) continue;
 
-      let channel = guild.channels.cache.find((ch) => ch.name === "connections" && ch.isTextBased());
+      let channel = guild.channels.cache.find((ch) => ch.name === "synapse" && ch.isTextBased());
       if (!channel) {
         channel = guild.channels.cache.find((ch) => ch.isTextBased());
       }
@@ -50,7 +50,7 @@ export async function checkForCompletedGames(client, pool, postedGames) {
 
       const embed = new EmbedBuilder()
         .setAuthor({
-          name: `${row.username} completed Connections!`,
+          name: `${row.username} completed Synapse!`,
           iconURL: row.avatar ? `https://cdn.discordapp.com/avatars/${row.user_id}/${row.avatar}.png` : undefined
         })
         .setDescription(formatGuessGrid(guessHistory))
@@ -97,7 +97,7 @@ export async function postDailyPrompt(client, pool, guildId, channelId) {
     }
 
     const embed = new EmbedBuilder()
-      .setTitle("🎮 Time to play Connections!")
+      .setTitle("🎮 Time to play Synapse!")
       .setDescription(
         `Today's puzzle is ready. Can you find all 4 groups?\n\n${completedCount} player${
           completedCount !== 1 ? "s" : ""

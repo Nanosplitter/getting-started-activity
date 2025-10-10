@@ -1,7 +1,7 @@
 {
-  "name": "connections-discord-bot",
+  "name": "synapse-discord-bot",
   "version": "1.0.0",
-  "description": "Discord bot for Connections game activity",
+  "description": "Discord bot for Synapse game activity",
   "main": "bot.js",
   "type": "module",
   "scripts": {
@@ -12,7 +12,7 @@
   "keywords": [
     "discord",
     "bot",
-    "connections"
+    "synapse"
   ],
   "author": "",
   "license": "ISC",

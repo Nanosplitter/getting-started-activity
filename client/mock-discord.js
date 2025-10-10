@@ -25,7 +25,7 @@ export class MockDiscordSDK {
           expires: Date.now() + 604800000,
           application: {
             id: this.clientId,
-            name: "Connections Game"
+            name: "Synapse Game"
           }
         };
       },

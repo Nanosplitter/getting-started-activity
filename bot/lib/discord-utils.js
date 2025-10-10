@@ -17,21 +17,21 @@ export function formatPlayerMessage(players, puzzleNumber, isComplete = false) {
     : "are playing";
 
   if (players.length === 1) {
-    return `**${players[0].username}** ${verb} Connections #${puzzleNumber}`;
+    return `**${players[0].username}** ${verb} Synapse #${puzzleNumber}`;
   } else if (players.length === 2) {
-    return `**${players[0].username}** and **${players[1].username}** ${verb} Connections #${puzzleNumber}`;
+    return `**${players[0].username}** and **${players[1].username}** ${verb} Synapse #${puzzleNumber}`;
   } else {
     const names = players
       .slice(0, -1)
       .map((p) => `**${p.username}**`)
       .join(", ");
-    return `${names}, and **${players[players.length - 1].username}** ${verb} Connections #${puzzleNumber}`;
+    return `${names}, and **${players[players.length - 1].username}** ${verb} Synapse #${puzzleNumber}`;
   }
 }
 
 export async function createGameAttachment(players, puzzleNumber) {
   const imageBuffer = await generateGameImage({ players, puzzleNumber });
-  return new AttachmentBuilder(imageBuffer, { name: "connections.png" });
+  return new AttachmentBuilder(imageBuffer, { name: "synapse.png" });
 }
 
 export async function launchActivity(client, interaction) {
@@ -64,7 +64,7 @@ export async function updateSessionMessage(client, session, attachment, messageT
         content: messageText,
         components: [button.toJSON()]
       },
-      files: [{ name: "connections.png", data: attachment.attachment }]
+      files: [{ name: "synapse.png", data: attachment.attachment }]
     });
   }
 }

@@ -28,7 +28,7 @@ export function renderGame(serverGameState) {
   const currentUser = getCurrentUser();
   const discordSdk = getDiscordSdk();
 
-  let html = `<h1>Connections</h1>`;
+  let html = `<h1>Synapse</h1>`;
 
   if (isDevMode) {
     const modeText = isLocalMode ? "Local Development Mode" : "Dev Mode (Discord SDK Active)";
@@ -240,7 +240,7 @@ function renderAlreadyPlayed(serverGameState, currentUser) {
 
   return `
     <div class="game-over">
-      <h2>You've already completed today's Connections!</h2>
+      <h2>You've already completed today's Synapse!</h2>
       <div class="final-score">
         Score: ${playerData.score}/4 categories<br>
         Mistakes: ${playerData.mistakes}/4

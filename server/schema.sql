@@ -1,12 +1,12 @@
--- Connections Game Database Schema
+-- Synapse Game Database Schema
 -- This schema is automatically created by the server on startup
 -- You can also manually create it using this file
 
-CREATE DATABASE IF NOT EXISTS connections_game
+CREATE DATABASE IF NOT EXISTS synapse_game
   DEFAULT CHARACTER SET utf8mb4
   DEFAULT COLLATE utf8mb4_unicode_ci;
 
-USE connections_game;
+USE synapse_game;
 
 -- Table to store game results for each player
 CREATE TABLE IF NOT EXISTS game_results (
@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS game_results (
   user_id VARCHAR(255) NOT NULL COMMENT 'Discord user ID',
   username VARCHAR(255) NOT NULL COMMENT 'Discord username at time of play',
   avatar VARCHAR(255) DEFAULT NULL COMMENT 'Discord avatar hash',
-  game_date DATE NOT NULL COMMENT 'Date of the Connections game played',
+  game_date DATE NOT NULL COMMENT 'Date of the Synapse game played',
   score INT NOT NULL COMMENT 'Number of categories solved (0-4)',
   mistakes INT NOT NULL COMMENT 'Number of mistakes made (0-4)',
   guess_history JSON DEFAULT NULL COMMENT 'Array of guess attempts with difficulty levels',
@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS game_results (
   -- Ensure one entry per player per game per guild
   UNIQUE KEY unique_player_game (guild_id, user_id, game_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-  COMMENT='Stores player game results for Connections';
+  COMMENT='Stores player game results for Synapse';
 
 -- Optional: Create a view for leaderboards
 CREATE OR REPLACE VIEW guild_leaderboard AS

@@ -24,7 +24,7 @@ export async function startGameSession(interaction, client, activeSessions) {
     );
 
     await interaction.editReply({
-      content: `Click **Play** to join today's Connections #${puzzleNumber}`,
+      content: `Click **Play** to join today's Synapse #${puzzleNumber}`,
       files: [attachment],
       components: [row]
     });
@@ -42,7 +42,7 @@ export async function startGameSession(interaction, client, activeSessions) {
 
     const updatedRow = createPlayButton(sessionId);
     await interaction.editReply({
-      content: `Click **Play** to join today's Connections #${puzzleNumber}`,
+      content: `Click **Play** to join today's Synapse #${puzzleNumber}`,
       files: [attachment],
       components: [updatedRow]
     });
@@ -100,7 +100,7 @@ export async function createReplySession(interaction, originalSession, client, a
 
     const webhook = interaction.webhook;
     const followUpMessage = await webhook.send({
-      content: `**${username}** is playing Connections #${puzzleNumber}`,
+      content: `**${username}** is playing Synapse #${puzzleNumber}`,
       files: [attachment],
       components: [
         new ActionRowBuilder().addComponents(

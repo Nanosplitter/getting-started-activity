@@ -5,7 +5,7 @@ import { fileURLToPath } from "url";
 import { initializeDatabase } from "./config/database.js";
 import { setupCorsAndSecurity } from "./config/middleware.js";
 import authRoutes from "./routes/auth.js";
-import connectionsRoutes from "./routes/connections.js";
+import synapseRoutes from "./routes/synapse.js";
 import gamestateRoutes from "./routes/gamestate.js";
 import sessionsRoutes from "./routes/sessions.js";
 
@@ -23,7 +23,7 @@ app.use(setupCorsAndSecurity);
 app.use(express.json());
 
 app.use(authRoutes);
-app.use(connectionsRoutes);
+app.use(synapseRoutes);
 app.use(gamestateRoutes);
 app.use(sessionsRoutes);
 

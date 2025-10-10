@@ -5,12 +5,12 @@
 import { API_ENDPOINTS } from "../config.js";
 
 /**
- * Fetch connections game data for a specific date
+ * Fetch Synapse game data for a specific date
  * @param {string} date - Date in YYYY-MM-DD format
  * @returns {Promise<Object>} - Game data
  */
 export async function fetchGameData(date) {
-  const response = await fetch(API_ENDPOINTS.connections(date));
+  const response = await fetch(API_ENDPOINTS.synapse(date));
 
   if (!response.ok) {
     throw new Error(`Failed to fetch game data for ${date}`);
@@ -35,7 +35,7 @@ export async function fetchGameData(date) {
     });
 
     allCards.sort((a, b) => a.position - b.position);
-    data.startingOrder = allCards.map(card => card.content);
+    data.startingOrder = allCards.map((card) => card.content);
   }
 
   return data;

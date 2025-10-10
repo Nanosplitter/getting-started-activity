@@ -148,7 +148,7 @@ h1 {
   white-space: nowrap;
 }
 
-/* Guess Grid (Wordle-style squares) */
+/* Guess Grid (colored squares) */
 .guess-grid {
   display: flex;
   flex-direction: column;

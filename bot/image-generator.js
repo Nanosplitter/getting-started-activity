@@ -1,7 +1,7 @@
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 
 /**
- * Generate a Connections game grid image for multiple players
+ * Generate a Synapse game grid image for multiple players
  * @param {Object} options - Image generation options
  * @param {Array} options.players - Array of player objects: { username, avatarUrl, guessHistory, isComplete }
  * @param {number} options.puzzleNumber - Puzzle number
@@ -61,7 +61,7 @@ function generateEmptyImage(puzzleNumber) {
   // Header
   ctx.fillStyle = "#ffffff";
   ctx.font = "bold 24px Arial";
-  const title = puzzleNumber ? `Connections #${puzzleNumber}` : "Connections";
+  const title = puzzleNumber ? `Synapse #${puzzleNumber}` : "Synapse";
   ctx.fillText(title, 20, 40);
 
   // Message
@@ -75,7 +75,7 @@ function generateEmptyImage(puzzleNumber) {
 }
 
 /**
- * Generate single player image (horizontal layout like Wordle)
+ * Generate single player image (horizontal layout)
  */
 async function generateSinglePlayerImage(player, puzzleNumber) {
   const width = 500;
@@ -299,7 +299,7 @@ async function drawPlayerSection(ctx, player, x, y, width) {
 }
 
 /**
- * Format guess history into emoji grid (like Wordle) for text display
+ * Format guess history into emoji grid for text display
  * @param {Array} guessHistory - Array of guess objects
  * @param {Object} gameData - Game data with categories (optional, for incorrect guesses)
  */

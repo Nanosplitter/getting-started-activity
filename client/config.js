@@ -1,5 +1,5 @@
 /**
- * Configuration and constants for the Connections game
+ * Configuration and constants for the Synapse game
  */
 
 // Check if we're in local development mode (not in Discord iframe)
@@ -28,7 +28,7 @@ export const DISCORD_CLIENT_ID = import.meta.env.VITE_DISCORD_CLIENT_ID || "mock
 
 export const API_ENDPOINTS = {
   token: "/api/token",
-  connections: (date) => `/api/connections/${date}`,
+  synapse: (date) => `/api/synapse/${date}`,
   gameState: (guildId, date) => `/api/gamestate/${guildId}/${date}`,
   completeGame: (guildId, date) => `/api/gamestate/${guildId}/${date}/complete`,
   deleteGame: (guildId, date, userId) => `/api/gamestate/${guildId}/${date}/${userId}`,

@@ -93,7 +93,7 @@ async function initializeGame() {
     app.innerHTML = `
       <div id="loading">
         <h1>Error Loading Game</h1>
-        <p>Could not load today's Connections game. Please try again later.</p>
+        <p>Could not load today's Synapse game. Please try again later.</p>
         <p style="color: #888; font-size: 0.9rem;">Error: ${error.message}</p>
       </div>
     `;

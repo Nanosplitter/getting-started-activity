@@ -3,7 +3,7 @@ import fetch from "node-fetch";
 
 const router = Router();
 
-router.get("/api/connections/:date", async (req, res) => {
+router.get("/api/synapse/:date", async (req, res) => {
   try {
     const { date } = req.params;
     const response = await fetch(`https://www.nytimes.com/svc/connections/v2/${date}.json`);
@@ -15,7 +15,7 @@ router.get("/api/connections/:date", async (req, res) => {
     const data = await response.json();
     res.json(data);
   } catch (error) {
-    console.error("Error fetching connections data:", error);
+    console.error("Error fetching game data:", error);
     res.status(500).json({ error: "Failed to fetch game data" });
   }
 });
