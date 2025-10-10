@@ -50,15 +50,12 @@ export function isOneAway(selectedWords) {
   const selected = new Set(selectedWords);
 
   for (const category of gameData.categories) {
-    // Skip already solved categories
     if (gameState.solvedCategories.some((solved) => solved.group === category.group)) {
       continue;
     }
 
-    // Count how many words match this category
     const matches = category.members.filter((member) => selected.has(member)).length;
 
-    // If exactly 3 match, we're "one away"
     if (matches === 3) {
       return true;
     }
@@ -116,32 +113,26 @@ export async function handleSubmit() {
   const matchedCategory = checkCategoryMatch(gameState.selectedWords);
 
   if (matchedCategory) {
-    // Correct guess!
     recordGuess(gameState.selectedWords, true, matchedCategory.difficulty);
     addSolvedCategory(matchedCategory);
     clearSelection();
     showMessage("Correct! 🎉", "success");
 
-    // Update session with new guess
     await updateSessionState();
 
-    // Check if game is complete
     if (isGameWon()) {
       completeGame();
       await saveGameResult();
     }
 
-    // Refresh the board
     await wait(1000);
     await refreshGame();
   } else {
-    // Wrong guess - keep selection so user can adjust
     const guessedWords = [...gameState.selectedWords];
 
-    // Get the difficulty for each word to show in the result
-    const wordDifficulties = guessedWords.map(word => {
+    const wordDifficulties = guessedWords.map((word) => {
       const gameData = getGameData();
-      const category = gameData.categories.find(cat => cat.members.includes(word));
+      const category = gameData.categories.find((cat) => cat.members.includes(word));
       return category ? category.difficulty : null;
     });
 
@@ -150,7 +141,6 @@ export async function handleSubmit() {
 
     await updateSessionState();
 
-    // Check for "one away" using the saved words
     if (isOneAway(guessedWords)) {
       showMessage("One away...", "info");
     } else {
@@ -161,7 +151,6 @@ export async function handleSubmit() {
       await saveGameResult();
     }
 
-    // Refresh the board
     await wait(1500);
     await refreshGame();
   }
@@ -206,7 +195,6 @@ async function saveGameResult() {
 
     gameState.hasPlayed = true;
 
-    // Refresh to show updated leaderboard
     await refreshGame();
   } catch (error) {
     console.error("Error saving game result:", error);
