@@ -97,8 +97,6 @@ export async function createReplySession(interaction, originalSession, client, a
       puzzleNumber
     );
 
-    // Use webhook to create a follow-up message without needing channel access
-    // We use the interaction's webhook since we can't use followUp after launching activity
     console.log(`📤 Creating webhook message for new session`);
 
     const webhook = interaction.webhook;
@@ -119,7 +117,6 @@ export async function createReplySession(interaction, originalSession, client, a
     console.log(`✅ Created webhook message ${newSessionId} in channel ${actualChannelId}`);
     console.log(`📋 followUpMessage keys:`, Object.keys(followUpMessage));
 
-    // Update the message button with the actual session ID using webhook
     await webhook.editMessage(followUpMessage.id, {
       components: [
         new ActionRowBuilder().addComponents(
@@ -139,7 +136,7 @@ export async function createReplySession(interaction, originalSession, client, a
       puzzleNumber,
       players: [{ userId, username, avatarUrl, guessHistory: [], lastGuessCount: 0 }],
       interaction: null,
-      webhook: webhook, // Store webhook for updating messages without channel access
+      webhook: webhook,
       parentMessageId: originalSession.messageId
     });
 
@@ -151,8 +148,6 @@ export async function createReplySession(interaction, originalSession, client, a
   } catch (error) {
     console.error("❌ Error creating reply session:", error);
     console.error("Stack trace:", error.stack);
-    // If activity was launched, interaction is already responded to
-    // If error occurred before launch, try to defer the interaction
     try {
       if (!interaction.replied && !interaction.deferred) {
         await interaction.deferUpdate();

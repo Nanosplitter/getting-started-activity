@@ -103,12 +103,4 @@ client.on("interactionCreate", async (interaction) => {
   }
 });
 
-client.on("messageCreate", async (message) => {
-  if (message.author.bot) return;
-
-  if (message.content === "!connections") {
-    await postDailyPrompt(client, pool, message.guildId, message.channelId);
-  }
-});
-
 client.login(process.env.DISCORD_BOT_TOKEN);

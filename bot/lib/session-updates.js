@@ -53,7 +53,6 @@ export async function checkSessionUpdates(client, activeSessions) {
         console.log(`📤 Updating Discord message with new progress...`);
 
         try {
-          // Check if all players are complete
           const allComplete = session.players.every((player) => {
             const guesses = player.guessHistory || [];
             const correctCount = guesses.filter((g) => g.correct).length;
@@ -75,7 +74,6 @@ export async function checkSessionUpdates(client, activeSessions) {
           console.error(`❌ Failed to edit message:`, editError.message);
         }
       } else if (session.players.length > 0) {
-        // Even without updates, check if session should be cleaned up
         const allComplete = session.players.every((player) => {
           const guesses = player.guessHistory || [];
           const correctCount = guesses.filter((g) => g.correct).length;
